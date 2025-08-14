@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -70,8 +71,9 @@ public class DataGeneratorService {
         String merchantName = faker.company().name();
         String merchantCategory = merchantCategories[random.nextInt(merchantCategories.length)];
         
-        // Legitimate transactions: reasonable amounts
-        BigDecimal amount = BigDecimal.valueOf(faker.number().randomDouble(2, 1, 500));
+        // Legitimate transactions: reasonable amounts (1 to 500)
+        double randomAmount = 1.0 + (random.nextDouble() * 499.0); // 1.0 to 500.0
+        BigDecimal amount = BigDecimal.valueOf(randomAmount).setScale(2, RoundingMode.HALF_UP);
         String currency = "USD";
         
         LocalDateTime timestamp = faker.date()
@@ -87,8 +89,9 @@ public class DataGeneratorService {
         String ipAddress = faker.internet().ipV4Address();
         String deviceType = deviceTypes[random.nextInt(deviceTypes.length)];
         
-        // Low risk score for legitimate transactions
-        BigDecimal riskScore = BigDecimal.valueOf(faker.number().randomDouble(2, 0.0, 0.3));
+        // Low risk score for legitimate transactions (0.0 to 0.3)
+        double randomRisk = random.nextDouble() * 0.3; // 0.0 to 0.3
+        BigDecimal riskScore = BigDecimal.valueOf(randomRisk).setScale(2, RoundingMode.HALF_UP);
         
         return new Transaction(
             transactionId, userId, merchantName, merchantCategory, amount, currency,
@@ -106,11 +109,13 @@ public class DataGeneratorService {
         // Fraudulent transactions: often higher amounts or suspicious patterns
         BigDecimal amount;
         if (random.nextDouble() < 0.6) {
-            // High amount transactions
-            amount = BigDecimal.valueOf(faker.number().randomDouble(2, 1000, 10000));
+            // High amount transactions (1000 to 10000)
+            double randomAmount = 1000.0 + (random.nextDouble() * 9000.0);
+            amount = BigDecimal.valueOf(randomAmount).setScale(2, RoundingMode.HALF_UP);
         } else {
-            // Small amount transactions (testing stolen cards)
-            amount = BigDecimal.valueOf(faker.number().randomDouble(2, 0.01, 5.0));
+            // Small amount transactions for testing stolen cards (0.01 to 5.0)
+            double randomAmount = 0.01 + (random.nextDouble() * 4.99);
+            amount = BigDecimal.valueOf(randomAmount).setScale(2, RoundingMode.HALF_UP);
         }
         
         String currency = "USD";
@@ -141,8 +146,9 @@ public class DataGeneratorService {
         
         String fraudReason = fraudReasons[random.nextInt(fraudReasons.length)];
         
-        // High risk score for fraudulent transactions
-        BigDecimal riskScore = BigDecimal.valueOf(faker.number().randomDouble(2, 0.7, 1.0));
+        // High risk score for fraudulent transactions (0.7 to 1.0)
+        double randomRisk = 0.7 + (random.nextDouble() * 0.3); // 0.7 to 1.0
+        BigDecimal riskScore = BigDecimal.valueOf(randomRisk).setScale(2, RoundingMode.HALF_UP);
         
         return new Transaction(
             transactionId, userId, merchantName, merchantCategory, amount, currency,
