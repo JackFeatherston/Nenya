@@ -1,8 +1,8 @@
-package com.example.frauddetection.controller;
+package com.example.fraud_detection.controller;
 
-import com.example.frauddetection.model.Transaction;
-import com.example.frauddetection.repository.TransactionRepository;
-import com.example.frauddetection.service.DataGeneratorService;
+import com.example.fraud_detection.model.Transaction;
+import com.example.fraud_detection.repository.TransactionRepository;
+import com.example.fraud_detection.service.DataGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

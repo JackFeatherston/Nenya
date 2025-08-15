@@ -1,4 +1,4 @@
-package com.example.frauddetection.model;
+package com.example.fraud_detection.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;

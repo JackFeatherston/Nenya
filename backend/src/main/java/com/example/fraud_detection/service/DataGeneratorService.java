@@ -1,7 +1,7 @@
-package com.example.frauddetection.service;
+package com.example.fraud_detection.service;
 
-import com.example.frauddetection.model.Transaction;
-import com.example.frauddetection.repository.TransactionRepository;
+import com.example.fraud_detection.model.Transaction;
+import com.example.fraud_detection.repository.TransactionRepository;
 import com.github.javafaker.Faker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

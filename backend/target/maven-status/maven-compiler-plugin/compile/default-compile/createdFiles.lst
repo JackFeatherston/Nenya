@@ -1,5 +1,0 @@
-com/example/frauddetection/service/DataGeneratorService.class
-com/example/frauddetection/model/Transaction.class
-com/example/frauddetection/FraudDetectionApplication.class
-com/example/frauddetection/controller/TransactionController.class
-com/example/frauddetection/repository/TransactionRepository.class

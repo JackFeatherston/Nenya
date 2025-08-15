@@ -1,6 +1,6 @@
-package com.example.frauddetection.repository;
+package com.example.fraud_detection.repository;
 
-import com.example.frauddetection.model.Transaction;
+import com.example.fraud_detection.model.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
