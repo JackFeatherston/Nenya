@@ -5,6 +5,7 @@ import com.example.fraud_detection.repository.TransactionRepository;
 import com.github.javafaker.Faker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -41,28 +42,51 @@ public class DataGeneratorService {
         "Suspicious device", "Compromised card", "Identity theft", "Account takeover"
     };
     
+    @Transactional
     public void generateSyntheticData(int totalTransactions) {
-        List<Transaction> transactions = new ArrayList<>();
-        
-        // Generate mostly legitimate transactions (95%) and some fraudulent ones (5%)
-        int fraudulentCount = (int) (totalTransactions * 0.05);
-        int legitimateCount = totalTransactions - fraudulentCount;
-        
-        // Generate legitimate transactions
-        for (int i = 0; i < legitimateCount; i++) {
-            transactions.add(generateLegitimateTransaction());
+        if (totalTransactions <= 0) {
+            throw new IllegalArgumentException("Total transactions must be positive");
         }
         
-        // Generate fraudulent transactions
-        for (int i = 0; i < fraudulentCount; i++) {
-            transactions.add(generateFraudulentTransaction());
+        if (totalTransactions > 100000) {
+            throw new IllegalArgumentException("Cannot generate more than 100,000 transactions at once");
         }
         
-        // Shuffle to mix legitimate and fraudulent transactions
-        Collections.shuffle(transactions);
-        
-        // Save all transactions
-        transactionRepository.saveAll(transactions);
+        try {
+            // Generate mostly legitimate transactions (95%) and some fraudulent ones (5%)
+            int fraudulentCount = (int) (totalTransactions * 0.05);
+            int legitimateCount = totalTransactions - fraudulentCount;
+            
+            // Process in batches to avoid memory issues
+            int batchSize = 1000;
+            
+            // Generate legitimate transactions in batches
+            for (int i = 0; i < legitimateCount; i += batchSize) {
+                int currentBatchSize = Math.min(batchSize, legitimateCount - i);
+                List<Transaction> batch = new ArrayList<>();
+                
+                for (int j = 0; j < currentBatchSize; j++) {
+                    batch.add(generateLegitimateTransaction());
+                }
+                
+                transactionRepository.saveAll(batch);
+            }
+            
+            // Generate fraudulent transactions in batches
+            for (int i = 0; i < fraudulentCount; i += batchSize) {
+                int currentBatchSize = Math.min(batchSize, fraudulentCount - i);
+                List<Transaction> batch = new ArrayList<>();
+                
+                for (int j = 0; j < currentBatchSize; j++) {
+                    batch.add(generateFraudulentTransaction());
+                }
+                
+                transactionRepository.saveAll(batch);
+            }
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate synthetic data: " + e.getMessage(), e);
+        }
     }
     
     private Transaction generateLegitimateTransaction() {
@@ -157,7 +181,12 @@ public class DataGeneratorService {
         );
     }
     
+    @Transactional
     public void clearAllData() {
-        transactionRepository.deleteAll();
+        try {
+            transactionRepository.deleteAll();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to clear data: " + e.getMessage(), e);
+        }
     }
 }

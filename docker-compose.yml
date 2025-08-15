@@ -6,8 +6,7 @@ services:
       POSTGRES_DB: fraud_detection
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      # This ensures the postgres superuser is created
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      # Remove the problematic POSTGRES_INITDB_ARGS
     ports:
       - "5432:5432"
     volumes:

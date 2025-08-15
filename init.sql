@@ -1,14 +1,14 @@
 -- Initialize the fraud_detection database
--- This script will run when the PostgreSQL container starts for the first time
+-- Note: Database is already created by Docker Compose POSTGRES_DB env var
+-- This script runs after database creation
 
-CREATE DATABASE fraud_detection;
-
--- Connect to the fraud_detection database
+-- Connect to the fraud_detection database (already exists)
 \c fraud_detection;
 
--- Create an index on the transactions table for better performance
--- Note: The table will be created by Hibernate, but we can add indexes here if needed
--- The actual table creation will happen when the Spring Boot app starts
+-- Create indexes for better performance (these will be applied after Hibernate creates tables)
+-- These commands will run but may fail initially since tables don't exist yet - that's OK
 
--- You can add any additional database setup here
+-- Add any additional database setup here if needed
 COMMENT ON DATABASE fraud_detection IS 'Database for fraud detection application with synthetic transaction data';
+
+-- You could add stored procedures, functions, or other database objects here
