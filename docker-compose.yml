@@ -6,12 +6,8 @@ services:
       POSTGRES_DB: fraud_detection
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      # Remove the problematic POSTGRES_INITDB_ARGS
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
     # Add health check to ensure database is ready
     healthcheck:
@@ -20,5 +16,4 @@ services:
       timeout: 10s
       retries: 3
 
-volumes:
-  postgres_data:
+# Remove the volumes section entirely
