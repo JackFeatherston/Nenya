@@ -53,38 +53,49 @@ public class DataGeneratorService {
         }
         
         try {
-            // Clear all existing data first
+            // Clear all existing data first and flush changes
             transactionRepository.deleteAll();
+            transactionRepository.flush();
             
-            // Generate mostly legitimate transactions (95%) and some fraudulent ones (5%)
-            int fraudulentCount = (int) (totalTransactions * 0.05);
-            int legitimateCount = totalTransactions - fraudulentCount;
-            
-            // Process in batches to avoid memory issues
-            int batchSize = 1000;
-            
-            // Generate legitimate transactions in batches
-            for (int i = 0; i < legitimateCount; i += batchSize) {
-                int currentBatchSize = Math.min(batchSize, legitimateCount - i);
-                List<Transaction> batch = new ArrayList<>();
-                
-                for (int j = 0; j < currentBatchSize; j++) {
-                    batch.add(generateLegitimateTransaction());
-                }
-                
-                transactionRepository.saveAll(batch);
+            // Verify data is cleared
+            long remainingCount = transactionRepository.count();
+            if (remainingCount > 0) {
+                throw new RuntimeException("Failed to clear existing data. " + remainingCount + " transactions remain.");
             }
             
-            // Generate fraudulent transactions in batches
-            for (int i = 0; i < fraudulentCount; i += batchSize) {
-                int currentBatchSize = Math.min(batchSize, fraudulentCount - i);
-                List<Transaction> batch = new ArrayList<>();
-                
-                for (int j = 0; j < currentBatchSize; j++) {
-                    batch.add(generateFraudulentTransaction());
-                }
-                
+            // Generate exactly the requested number of transactions
+            // 95% legitimate, 5% fraudulent
+            int fraudulentCount = (int) Math.round(totalTransactions * 0.05);
+            int legitimateCount = totalTransactions - fraudulentCount;
+            
+            List<Transaction> allTransactions = new ArrayList<>();
+            
+            // Generate legitimate transactions
+            for (int i = 0; i < legitimateCount; i++) {
+                allTransactions.add(generateLegitimateTransaction());
+            }
+            
+            // Generate fraudulent transactions
+            for (int i = 0; i < fraudulentCount; i++) {
+                allTransactions.add(generateFraudulentTransaction());
+            }
+            
+            // Shuffle the list to mix legitimate and fraudulent transactions
+            Collections.shuffle(allTransactions);
+            
+            // Save all transactions in batches to avoid memory issues
+            int batchSize = 500;
+            for (int i = 0; i < allTransactions.size(); i += batchSize) {
+                int endIndex = Math.min(i + batchSize, allTransactions.size());
+                List<Transaction> batch = allTransactions.subList(i, endIndex);
                 transactionRepository.saveAll(batch);
+                transactionRepository.flush(); // Ensure each batch is committed
+            }
+            
+            // Verify the correct number of transactions were created
+            long finalCount = transactionRepository.count();
+            if (finalCount != totalTransactions) {
+                throw new RuntimeException("Expected " + totalTransactions + " transactions but created " + finalCount);
             }
             
         } catch (Exception e) {
@@ -188,6 +199,13 @@ public class DataGeneratorService {
     public void clearAllData() {
         try {
             transactionRepository.deleteAll();
+            transactionRepository.flush();
+            
+            // Verify data is cleared
+            long remainingCount = transactionRepository.count();
+            if (remainingCount > 0) {
+                throw new RuntimeException("Failed to clear all data. " + remainingCount + " transactions remain.");
+            }
         } catch (Exception e) {
             throw new RuntimeException("Failed to clear data: " + e.getMessage(), e);
         }
