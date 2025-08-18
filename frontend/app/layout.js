@@ -1,6 +1,5 @@
 export const metadata = {
-    title: 'Hello World App',
-    description: 'A simple Hello World application',
+    title: 'Nenya'
   }
   
   export default function RootLayout({ children }) {

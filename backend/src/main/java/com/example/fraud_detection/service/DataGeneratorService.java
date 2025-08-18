@@ -53,6 +53,9 @@ public class DataGeneratorService {
         }
         
         try {
+            // Clear all existing data first
+            transactionRepository.deleteAll();
+            
             // Generate mostly legitimate transactions (95%) and some fraudulent ones (5%)
             int fraudulentCount = (int) (totalTransactions * 0.05);
             int legitimateCount = totalTransactions - fraudulentCount;
