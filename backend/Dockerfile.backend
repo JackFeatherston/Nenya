@@ -1,28 +1,32 @@
-# Use OpenJDK 17 as base image
-FROM openjdk:17-jdk-slim
+# Use Maven image for building
+FROM maven:3.9.6-openjdk-17 AS build
 
 # Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first for better caching
-COPY mvnw .
-COPY .mvn .mvn
+# Copy pom.xml first for better caching
 COPY pom.xml .
 
-# Make Maven wrapper executable
-RUN chmod +x ./mvnw
-
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
-RUN ./mvnw dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 # Copy source code
 COPY src ./src
 
 # Build the application
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
+
+# Use OpenJDK runtime for the final image
+FROM openjdk:17-jdk-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy the built jar from the build stage
+COPY --from=build /app/target/fraud-detection-1.0.0.jar app.jar
 
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Wait for database to be ready and then start the application
-CMD ["java", "-jar", "target/fraud-detection-1.0.0.jar"]
+# Start the application
+CMD ["java", "-jar", "app.jar"]
