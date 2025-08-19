@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom styles for your fraud detection globe */
+@layer components {
+  .fraud-globe-container {
+    @apply bg-gray-900 rounded-lg shadow-xl border border-gray-700;
+  }
+  
+  .fraud-dot {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .fraud-dot:hover {
+    transform: scale(1.2);
+  }
+}
+
+/* Ensure the body has a dark theme by default */
+body {
+  @apply bg-gray-900 text-white;
+}
