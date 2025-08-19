@@ -22,7 +22,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.backend
     container_name: fraud_detection_backend
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/fraud_detection
@@ -45,7 +45,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.frontend
     container_name: fraud_detection_frontend
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
