@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import * as topojson from 'topojson-client';
 
 const FraudGlobe = () => {
   const globeRef = useRef();
@@ -12,6 +13,37 @@ const FraudGlobe = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [stats, setStats] = useState({ total: 0, fraudulent: 0, legitimate: 0, fraudRate: 0 });
+  const [worldData, setWorldData] = useState(null);
+
+  // Load world atlas data
+  useEffect(() => {
+    const loadWorldData = async () => {
+      try {
+        // Use world atlas data from unpkg CDN (reliable source for TopoJSON data)
+        const response = await fetch('https://unpkg.com/world-atlas@2/countries-110m.json');
+        if (!response.ok) throw new Error('Failed to load world data');
+        
+        const topojsonData = await response.json();
+        
+        // Convert TopoJSON to GeoJSON
+        const { countries, land } = topojsonData.objects;
+        
+        const worldGeoData = {
+          land: topojson.feature(topojsonData, land),
+          countries: topojson.feature(topojsonData, countries),
+          countryMesh: topojson.mesh(topojsonData, countries, (a, b) => a !== b)
+        };
+        
+        setWorldData(worldGeoData);
+      } catch (err) {
+        console.warn('Could not load world atlas data:', err);
+        // Fallback to basic shapes if world data fails to load
+        setWorldData(null);
+      }
+    };
+
+    loadWorldData();
+  }, []);
 
   // Fetch fraud transactions and stats from API
   const fetchData = async () => {
@@ -126,7 +158,7 @@ const FraudGlobe = () => {
     }
   };
 
-  // D3.js Globe implementation
+  // D3.js Globe implementation with high-resolution world data
   useEffect(() => {
     if (!globeRef.current || loading) return;
 
@@ -154,15 +186,14 @@ const FraudGlobe = () => {
 
     const path = d3.geoPath().projection(projection);
 
-    // Create globe background
+    // Create globe sphere background
     svg
-      .append('circle')
-      .attr('cx', width / 2)
-      .attr('cy', height / 2)
-      .attr('r', 250)
-      .attr('class', 'globe')
-      .style('fill', '#1a1a2e')
-      .style('stroke', '#16213e')
+      .append('path')
+      .datum({ type: 'Sphere' })
+      .attr('class', 'sphere')
+      .attr('d', path)
+      .style('fill', '#0f172a') // Dark blue ocean
+      .style('stroke', '#1e293b')
       .style('stroke-width', '2px');
 
     // Create graticule (grid lines)
@@ -174,116 +205,130 @@ const FraudGlobe = () => {
       .attr('class', 'graticule')
       .attr('d', path)
       .style('fill', 'none')
-      .style('stroke', 'rgba(255,255,255,0.1)')
-      .style('stroke-width', '1px');
+      .style('stroke', 'rgba(148, 163, 184, 0.1)')
+      .style('stroke-width', '0.5px');
 
-    // Load world data and create continents
-    const drawContinents = async () => {
-      try {
-        // Create simple continent shapes using D3's built-in world data
-        const world = {
-          type: "FeatureCollection",
-          features: [
-            // Simplified continent polygons
-            {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [-160, 70], [-100, 70], [-80, 50], [-100, 40], 
-                    [-120, 30], [-140, 45], [-160, 60], [-160, 70]
-                  ]
-                ]
-              },
-              properties: { name: "North America" }
-            },
-            {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [-80, 10], [-40, 10], [-30, -20], [-60, -40], 
-                    [-80, -20], [-80, 10]
-                  ]
-                ]
-              },
-              properties: { name: "South America" }
-            },
-            {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [-20, 70], [40, 70], [50, 40], [30, 30], 
-                    [-10, 35], [-20, 50], [-20, 70]
-                  ]
-                ]
-              },
-              properties: { name: "Europe" }
-            },
-            {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [-20, 35], [50, 35], [50, -35], [10, -35], 
-                    [-20, -10], [-20, 35]
-                  ]
-                ]
-              },
-              properties: { name: "Africa" }
-            },
-            {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [50, 70], [180, 70], [180, 10], [120, 10], 
-                    [70, 30], [50, 50], [50, 70]
-                  ]
-                ]
-              },
-              properties: { name: "Asia" }
-            },
-            {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [110, -10], [160, -10], [160, -45], [110, -45], [110, -10]
-                  ]
-                ]
-              },
-              properties: { name: "Australia" }
-            }
-          ]
-        };
+    // Draw high-resolution world data if available
+    if (worldData) {
+      // Draw land masses
+      svg
+        .selectAll('.land')
+        .data(worldData.land.features)
+        .enter()
+        .append('path')
+        .attr('class', 'land')
+        .attr('d', path)
+        .style('fill', '#1e40af') // Nice blue for land
+        .style('stroke', 'none');
 
-        // Draw continents
-        svg
-          .selectAll('.continent')
-          .data(world.features)
-          .enter()
-          .append('path')
-          .attr('class', 'continent')
-          .attr('d', path)
-          .style('fill', '#0f3460')
-          .style('stroke', '#16213e')
-          .style('stroke-width', '1px')
-          .style('opacity', 0.8);
+      // Draw country boundaries
+      svg
+        .append('path')
+        .datum(worldData.countryMesh)
+        .attr('class', 'country-borders')
+        .attr('d', path)
+        .style('fill', 'none')
+        .style('stroke', '#3b82f6') // Lighter blue for borders
+        .style('stroke-width', '0.5px')
+        .style('opacity', 0.6);
+    } else {
+      // Fallback: Create simple continent shapes if world data fails to load
+      console.warn('Using fallback continent shapes');
+      const fallbackWorld = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [-160, 70], [-100, 70], [-80, 50], [-100, 40], 
+                  [-120, 30], [-140, 45], [-160, 60], [-160, 70]
+                ]
+              ]
+            },
+            properties: { name: "North America" }
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [-80, 10], [-40, 10], [-30, -20], [-60, -40], 
+                  [-80, -20], [-80, 10]
+                ]
+              ]
+            },
+            properties: { name: "South America" }
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [-20, 70], [40, 70], [50, 40], [30, 30], 
+                  [-10, 35], [-20, 50], [-20, 70]
+                ]
+              ]
+            },
+            properties: { name: "Europe" }
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [-20, 35], [50, 35], [50, -35], [10, -35], 
+                  [-20, -10], [-20, 35]
+                ]
+              ]
+            },
+            properties: { name: "Africa" }
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [50, 70], [180, 70], [180, 10], [120, 10], 
+                  [70, 30], [50, 50], [50, 70]
+                ]
+              ]
+            },
+            properties: { name: "Asia" }
+          },
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [110, -10], [160, -10], [160, -45], [110, -45], [110, -10]
+                ]
+              ]
+            },
+            properties: { name: "Australia" }
+          }
+        ]
+      };
 
-      } catch (error) {
-        console.warn('Could not load world data, using basic globe');
-      }
-    };
-
-    drawContinents();
+      svg
+        .selectAll('.continent')
+        .data(fallbackWorld.features)
+        .enter()
+        .append('path')
+        .attr('class', 'continent')
+        .attr('d', path)
+        .style('fill', '#1e40af')
+        .style('stroke', '#3b82f6')
+        .style('stroke-width', '1px')
+        .style('opacity', 0.8);
+    }
 
     // Add fraud transaction dots
     const dots = svg
@@ -330,12 +375,38 @@ const FraudGlobe = () => {
       .delay((d, i) => i * 50)
       .style('opacity', 1);
 
+    // Helper function to update all elements when rotation changes
+    const updateElements = () => {
+      // Update all world elements
+      svg.selectAll('.land').attr('d', path);
+      svg.selectAll('.continent').attr('d', path);
+      svg.selectAll('.country-borders').attr('d', path);
+      svg.selectAll('.sphere').attr('d', path);
+      svg.selectAll('.graticule').attr('d', path);
+      
+      // Update fraud dots with visibility based on globe rotation
+      svg.selectAll('.fraud-dot')
+        .attr('cx', d => {
+          const coords = projection([d.lng, d.lat]);
+          return coords ? coords[0] : -1000;
+        })
+        .attr('cy', d => {
+          const coords = projection([d.lng, d.lat]);
+          return coords ? coords[1] : -1000;
+        })
+        .style('opacity', d => {
+          const coords = projection([d.lng, d.lat]);
+          if (!coords) return 0;
+          // Hide dots on the back of the globe
+          const distance = d3.geoDistance([d.lng, d.lat], projection.invert([width/2, height/2]));
+          return distance > Math.PI/2 ? 0 : 1;
+        });
+    };
+
     // Rotation functionality
-    let rotation = { x: 0, y: 0 };
-    
     const drag = d3.drag()
       .on('start', function(event) {
-        // Store initial mouse position
+        // Store initial state
       })
       .on('drag', function(event) {
         const rotate = projection.rotate();
@@ -345,24 +416,7 @@ const FraudGlobe = () => {
           rotate[1] - event.dy * k
         ]);
 
-        // Update all paths and dots
-        svg.selectAll('path').attr('d', path);
-        
-        svg.selectAll('.fraud-dot')
-          .attr('cx', d => {
-            const coords = projection([d.lng, d.lat]);
-            return coords ? coords[0] : -1000;
-          })
-          .attr('cy', d => {
-            const coords = projection([d.lng, d.lat]);
-            return coords ? coords[1] : -1000;
-          })
-          .style('opacity', d => {
-            const coords = projection([d.lng, d.lat]);
-            // Hide dots on the back of the globe
-            const distance = d3.geoDistance([d.lng, d.lat], projection.invert([width/2, height/2]));
-            return distance > Math.PI/2 ? 0 : 1;
-          });
+        updateElements();
       });
 
     svg.call(drag);
@@ -373,23 +427,7 @@ const FraudGlobe = () => {
       autoRotateTimer = d3.timer(() => {
         const rotate = projection.rotate();
         projection.rotate([rotate[0] + 0.2, rotate[1]]);
-        
-        svg.selectAll('path').attr('d', path);
-        
-        svg.selectAll('.fraud-dot')
-          .attr('cx', d => {
-            const coords = projection([d.lng, d.lat]);
-            return coords ? coords[0] : -1000;
-          })
-          .attr('cy', d => {
-            const coords = projection([d.lng, d.lat]);
-            return coords ? coords[1] : -1000;
-          })
-          .style('opacity', d => {
-            const coords = projection([d.lng, d.lat]);
-            const distance = d3.geoDistance([d.lng, d.lat], projection.invert([width/2, height/2]));
-            return distance > Math.PI/2 ? 0 : 1;
-          });
+        updateElements();
       });
     };
 
@@ -413,7 +451,7 @@ const FraudGlobe = () => {
       d3.select(globeRef.current).selectAll("*").remove();
     };
 
-  }, [transactions, loading]);
+  }, [transactions, loading, worldData]);
 
   const formatAmount = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -432,6 +470,7 @@ const FraudGlobe = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading fraud data...</p>
+          <p className="text-gray-400 text-sm mt-2">Fetching high-resolution world map...</p>
         </div>
       </div>
     );
@@ -464,6 +503,11 @@ const FraudGlobe = () => {
             Interactive 3D globe showing {transactions.length} fraud transactions. 
             Drag to rotate • Click dots for details
           </p>
+          {worldData && (
+            <p className="text-green-400 text-center text-sm mt-1">
+              ✓ High-resolution world map loaded
+            </p>
+          )}
           
           {/* Data Controls */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
