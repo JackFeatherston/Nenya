@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react';
+import * as d3 from 'd3';
 
 const FraudGlobe = () => {
-  const canvasRef = useRef();
-  const frameRef = useRef();
+  const globeRef = useRef();
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,9 +12,6 @@ const FraudGlobe = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [stats, setStats] = useState({ total: 0, fraudulent: 0, legitimate: 0, fraudRate: 0 });
-  const [rotation, setRotation] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
 
   // Fetch fraud transactions and stats from API
   const fetchData = async () => {
@@ -129,273 +126,294 @@ const FraudGlobe = () => {
     }
   };
 
-  // 3D Globe rendering
+  // D3.js Globe implementation
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!globeRef.current || loading) return;
 
-    const ctx = canvas.getContext('2d');
+    // Clear previous globe
+    d3.select(globeRef.current).selectAll("*").remove();
+
     const width = 600;
     const height = 600;
-    canvas.width = width;
-    canvas.height = height;
+    const sensitivity = 75;
 
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = 200;
+    // Create SVG
+    const svg = d3
+      .select(globeRef.current)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height);
 
-    // Convert lat/lng to 3D coordinates
-    const latLngTo3D = (lat, lng, r = radius) => {
-      const phi = (lat * Math.PI) / 180;
-      const theta = ((lng - 90) * Math.PI) / 180;
+    // Create projection and path generator
+    const projection = d3
+      .geoOrthographic()
+      .scale(250)
+      .center([0, 0])
+      .rotate([0, -30])
+      .translate([width / 2, height / 2]);
 
-      const x = r * Math.cos(phi) * Math.cos(theta);
-      const y = r * Math.sin(phi);
-      const z = r * Math.cos(phi) * Math.sin(theta);
+    const path = d3.geoPath().projection(projection);
 
-      return { x, y, z };
-    };
+    // Create globe background
+    svg
+      .append('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', 250)
+      .attr('class', 'globe')
+      .style('fill', '#1a1a2e')
+      .style('stroke', '#16213e')
+      .style('stroke-width', '2px');
 
-    // Project 3D to 2D
-    const project3D = (x, y, z, rotX, rotY) => {
-      // Apply rotation
-      const cosRX = Math.cos(rotX);
-      const sinRX = Math.sin(rotX);
-      const cosRY = Math.cos(rotY);
-      const sinRY = Math.sin(rotY);
+    // Create graticule (grid lines)
+    const graticule = d3.geoGraticule();
+    
+    svg
+      .append('path')
+      .datum(graticule)
+      .attr('class', 'graticule')
+      .attr('d', path)
+      .style('fill', 'none')
+      .style('stroke', 'rgba(255,255,255,0.1)')
+      .style('stroke-width', '1px');
 
-      // Rotate around X axis
-      const y1 = y * cosRX - z * sinRX;
-      const z1 = y * sinRX + z * cosRX;
-
-      // Rotate around Y axis
-      const x2 = x * cosRY + z1 * sinRY;
-      const z2 = -x * sinRY + z1 * cosRY;
-
-      // Project to 2D
-      const scale = 300 / (300 + z2);
-      return {
-        x: centerX + x2 * scale,
-        y: centerY - y1 * scale,
-        scale: scale,
-        z: z2
-      };
-    };
-
-    // Generate continent data (simplified)
-    const generateContinentPoints = () => {
-      const continents = [
-        // North America
-        { lat: 50, lng: -100 }, { lat: 45, lng: -75 }, { lat: 30, lng: -80 }, { lat: 25, lng: -110 },
-        // Europe
-        { lat: 60, lng: 10 }, { lat: 50, lng: 0 }, { lat: 45, lng: 15 }, { lat: 55, lng: 30 },
-        // Asia
-        { lat: 60, lng: 100 }, { lat: 45, lng: 120 }, { lat: 30, lng: 110 }, { lat: 35, lng: 80 },
-        // Africa
-        { lat: 20, lng: 20 }, { lat: 0, lng: 25 }, { lat: -20, lng: 30 }, { lat: -30, lng: 25 },
-        // South America
-        { lat: 10, lng: -60 }, { lat: -10, lng: -55 }, { lat: -30, lng: -60 }, { lat: -40, lng: -70 },
-        // Australia
-        { lat: -25, lng: 135 }, { lat: -30, lng: 140 }, { lat: -35, lng: 145 }
-      ];
-
-      return continents.map(coord => {
-        const pos3d = latLngTo3D(coord.lat, coord.lng);
-        return { ...coord, ...pos3d };
-      });
-    };
-
-    const continentPoints = generateContinentPoints();
-
-    // Generate grid lines for the globe
-    const generateGridLines = () => {
-      const lines = [];
-      
-      // Latitude lines
-      for (let lat = -80; lat <= 80; lat += 20) {
-        const line = [];
-        for (let lng = -180; lng <= 180; lng += 10) {
-          const pos3d = latLngTo3D(lat, lng);
-          line.push({ lat, lng, ...pos3d });
-        }
-        lines.push(line);
-      }
-      
-      // Longitude lines
-      for (let lng = -180; lng <= 180; lng += 30) {
-        const line = [];
-        for (let lat = -80; lat <= 80; lat += 5) {
-          const pos3d = latLngTo3D(lat, lng);
-          line.push({ lat, lng, ...pos3d });
-        }
-        lines.push(line);
-      }
-      
-      return lines;
-    };
-
-    const gridLines = generateGridLines();
-
-    const animate = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // Create gradient for globe
-      const gradient = ctx.createRadialGradient(centerX - 50, centerY - 50, 50, centerX, centerY, radius);
-      gradient.addColorStop(0, '#4a90e2');
-      gradient.addColorStop(0.7, '#2c5aa0');
-      gradient.addColorStop(1, '#1e3a5f');
-
-      // Draw ocean (main globe)
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.fillStyle = gradient;
-      ctx.fill();
-      ctx.strokeStyle = '#2c5282';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      // Draw grid lines
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
-      gridLines.forEach(line => {
-        ctx.beginPath();
-        let first = true;
-        line.forEach(point => {
-          const projected = project3D(point.x, point.y, point.z, rotation.x, rotation.y);
-          if (projected.z > -radius * 0.5) { // Only draw visible parts
-            if (first) {
-              ctx.moveTo(projected.x, projected.y);
-              first = false;
-            } else {
-              ctx.lineTo(projected.x, projected.y);
+    // Load world data and create continents
+    const drawContinents = async () => {
+      try {
+        // Create simple continent shapes using D3's built-in world data
+        const world = {
+          type: "FeatureCollection",
+          features: [
+            // Simplified continent polygons
+            {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [-160, 70], [-100, 70], [-80, 50], [-100, 40], 
+                    [-120, 30], [-140, 45], [-160, 60], [-160, 70]
+                  ]
+                ]
+              },
+              properties: { name: "North America" }
+            },
+            {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [-80, 10], [-40, 10], [-30, -20], [-60, -40], 
+                    [-80, -20], [-80, 10]
+                  ]
+                ]
+              },
+              properties: { name: "South America" }
+            },
+            {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [-20, 70], [40, 70], [50, 40], [30, 30], 
+                    [-10, 35], [-20, 50], [-20, 70]
+                  ]
+                ]
+              },
+              properties: { name: "Europe" }
+            },
+            {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [-20, 35], [50, 35], [50, -35], [10, -35], 
+                    [-20, -10], [-20, 35]
+                  ]
+                ]
+              },
+              properties: { name: "Africa" }
+            },
+            {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [50, 70], [180, 70], [180, 10], [120, 10], 
+                    [70, 30], [50, 50], [50, 70]
+                  ]
+                ]
+              },
+              properties: { name: "Asia" }
+            },
+            {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [110, -10], [160, -10], [160, -45], [110, -45], [110, -10]
+                  ]
+                ]
+              },
+              properties: { name: "Australia" }
             }
-          }
-        });
-        ctx.stroke();
-      });
+          ]
+        };
 
-      // Draw continents
-      ctx.fillStyle = 'rgba(60, 120, 60, 0.8)';
-      continentPoints.forEach(point => {
-        const projected = project3D(point.x, point.y, point.z, rotation.x, rotation.y);
-        if (projected.z > -radius * 0.3) { // Only draw visible continents
-          ctx.beginPath();
-          ctx.arc(projected.x, projected.y, 8 * projected.scale, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      });
+        // Draw continents
+        svg
+          .selectAll('.continent')
+          .data(world.features)
+          .enter()
+          .append('path')
+          .attr('class', 'continent')
+          .attr('d', path)
+          .style('fill', '#0f3460')
+          .style('stroke', '#16213e')
+          .style('stroke-width', '1px')
+          .style('opacity', 0.8);
 
-      // Draw fraud transaction dots
-      transactions.forEach((transaction, index) => {
-        const pos3d = latLngTo3D(transaction.lat, transaction.lng);
-        const projected = project3D(pos3d.x, pos3d.y, pos3d.z, rotation.x, rotation.y);
-        
-        if (projected.z > -radius * 0.2) { // Only draw visible dots
-          const dotRadius = Math.max(4, Math.min(12, Math.log(parseFloat(transaction.amount)) * 2)) * projected.scale;
-          
-          // Add glow effect
-          const glowGradient = ctx.createRadialGradient(
-            projected.x, projected.y, 0,
-            projected.x, projected.y, dotRadius * 2
-          );
-          glowGradient.addColorStop(0, 'rgba(239, 68, 68, 1)');
-          glowGradient.addColorStop(0.5, 'rgba(239, 68, 68, 0.6)');
-          glowGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
-          
-          // Draw glow
-          ctx.beginPath();
-          ctx.arc(projected.x, projected.y, dotRadius * 2, 0, Math.PI * 2);
-          ctx.fillStyle = glowGradient;
-          ctx.fill();
-          
-          // Draw main dot
-          ctx.beginPath();
-          ctx.arc(projected.x, projected.y, dotRadius, 0, Math.PI * 2);
-          ctx.fillStyle = '#ef4444';
-          ctx.fill();
-          ctx.strokeStyle = '#dc2626';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          // Store click area for interaction
-          transaction._screenPos = { 
-            x: projected.x, 
-            y: projected.y, 
-            radius: dotRadius,
-            visible: true
-          };
-        } else {
-          if (transaction._screenPos) {
-            transaction._screenPos.visible = false;
-          }
-        }
-      });
-
-      frameRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current);
+      } catch (error) {
+        console.warn('Could not load world data, using basic globe');
       }
     };
-  }, [transactions, rotation]);
 
-  // Mouse handlers
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    const rect = canvasRef.current.getBoundingClientRect();
-    setLastMouse({ 
-      x: e.clientX - rect.left, 
-      y: e.clientY - rect.top 
-    });
-  };
+    drawContinents();
 
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
+    // Add fraud transaction dots
+    const dots = svg
+      .selectAll('.fraud-dot')
+      .data(transactions)
+      .enter()
+      .append('circle')
+      .attr('class', 'fraud-dot')
+      .attr('r', d => Math.max(3, Math.min(8, Math.log(parseFloat(d.amount)))))
+      .attr('cx', d => {
+        const coords = projection([d.lng, d.lat]);
+        return coords ? coords[0] : -1000;
+      })
+      .attr('cy', d => {
+        const coords = projection([d.lng, d.lat]);
+        return coords ? coords[1] : -1000;
+      })
+      .style('fill', '#ef4444')
+      .style('stroke', '#dc2626')
+      .style('stroke-width', '2px')
+      .style('cursor', 'pointer')
+      .style('filter', 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))')
+      .on('click', function(event, d) {
+        setSelectedTransaction(d);
+      })
+      .on('mouseover', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('r', Math.max(5, Math.min(12, Math.log(parseFloat(d.amount)) + 2)));
+      })
+      .on('mouseout', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('r', Math.max(3, Math.min(8, Math.log(parseFloat(d.amount)))));
+      });
+
+    // Add pulsing animation to dots
+    dots
+      .style('opacity', 0)
+      .transition()
+      .duration(1000)
+      .delay((d, i) => i * 50)
+      .style('opacity', 1);
+
+    // Rotation functionality
+    let rotation = { x: 0, y: 0 };
     
-    const rect = canvasRef.current.getBoundingClientRect();
-    const currentMouse = { 
-      x: e.clientX - rect.left, 
-      y: e.clientY - rect.top 
+    const drag = d3.drag()
+      .on('start', function(event) {
+        // Store initial mouse position
+      })
+      .on('drag', function(event) {
+        const rotate = projection.rotate();
+        const k = sensitivity / projection.scale();
+        projection.rotate([
+          rotate[0] + event.dx * k,
+          rotate[1] - event.dy * k
+        ]);
+
+        // Update all paths and dots
+        svg.selectAll('path').attr('d', path);
+        
+        svg.selectAll('.fraud-dot')
+          .attr('cx', d => {
+            const coords = projection([d.lng, d.lat]);
+            return coords ? coords[0] : -1000;
+          })
+          .attr('cy', d => {
+            const coords = projection([d.lng, d.lat]);
+            return coords ? coords[1] : -1000;
+          })
+          .style('opacity', d => {
+            const coords = projection([d.lng, d.lat]);
+            // Hide dots on the back of the globe
+            const distance = d3.geoDistance([d.lng, d.lat], projection.invert([width/2, height/2]));
+            return distance > Math.PI/2 ? 0 : 1;
+          });
+      });
+
+    svg.call(drag);
+
+    // Auto-rotation
+    let autoRotateTimer;
+    const startAutoRotate = () => {
+      autoRotateTimer = d3.timer(() => {
+        const rotate = projection.rotate();
+        projection.rotate([rotate[0] + 0.2, rotate[1]]);
+        
+        svg.selectAll('path').attr('d', path);
+        
+        svg.selectAll('.fraud-dot')
+          .attr('cx', d => {
+            const coords = projection([d.lng, d.lat]);
+            return coords ? coords[0] : -1000;
+          })
+          .attr('cy', d => {
+            const coords = projection([d.lng, d.lat]);
+            return coords ? coords[1] : -1000;
+          })
+          .style('opacity', d => {
+            const coords = projection([d.lng, d.lat]);
+            const distance = d3.geoDistance([d.lng, d.lat], projection.invert([width/2, height/2]));
+            return distance > Math.PI/2 ? 0 : 1;
+          });
+      });
     };
-    
-    const deltaX = currentMouse.x - lastMouse.x;
-    const deltaY = currentMouse.y - lastMouse.y;
-    
-    setRotation(prev => ({
-      x: prev.x + deltaY * 0.01,
-      y: prev.y + deltaX * 0.01
-    }));
-    
-    setLastMouse(currentMouse);
-  };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleClick = (e) => {
-    if (isDragging) return;
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-    
-    // Find clicked transaction
-    const clickedTransaction = transactions.find(t => {
-      if (!t._screenPos || !t._screenPos.visible) return false;
-      const distance = Math.sqrt(
-        Math.pow(clickX - t._screenPos.x, 2) + 
-        Math.pow(clickY - t._screenPos.y, 2)
-      );
-      return distance <= t._screenPos.radius;
+    // Stop auto-rotation on drag start, restart after delay
+    svg.on('mousedown', () => {
+      if (autoRotateTimer) autoRotateTimer.stop();
     });
-    
-    setSelectedTransaction(clickedTransaction || null);
-  };
+
+    svg.on('mouseup', () => {
+      setTimeout(() => {
+        startAutoRotate();
+      }, 3000); // Resume auto-rotation after 3 seconds
+    });
+
+    // Start auto-rotation
+    startAutoRotate();
+
+    // Cleanup function
+    return () => {
+      if (autoRotateTimer) autoRotateTimer.stop();
+      d3.select(globeRef.current).selectAll("*").remove();
+    };
+
+  }, [transactions, loading]);
 
   const formatAmount = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -407,20 +425,6 @@ const FraudGlobe = () => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
   };
-
-  // Auto-rotate when not interacting
-  useEffect(() => {
-    if (isDragging) return;
-    
-    const interval = setInterval(() => {
-      setRotation(prev => ({
-        ...prev,
-        y: prev.y + 0.005
-      }));
-    }, 50);
-    
-    return () => clearInterval(interval);
-  }, [isDragging]);
 
   if (loading) {
     return (
@@ -545,16 +549,7 @@ const FraudGlobe = () => {
             <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
               <div className="flex justify-center">
                 <div className="border-2 border-gray-600 rounded-lg p-4 bg-gray-900">
-                  <canvas 
-                    ref={canvasRef}
-                    className="cursor-move"
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    onClick={handleClick}
-                    style={{ display: 'block' }}
-                  />
+                  <div ref={globeRef} className="cursor-move"></div>
                 </div>
               </div>
               
