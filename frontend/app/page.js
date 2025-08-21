@@ -503,17 +503,12 @@ const FraudGlobe = () => {
             Interactive 3D globe showing {transactions.length} fraud transactions. 
             Drag to rotate • Click dots for details
           </p>
-          {worldData && (
-            <p className="text-green-400 text-center text-sm mt-1">
-              ✓ High-resolution world map loaded
-            </p>
-          )}
           
           {/* Data Controls */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
             <div className="flex flex-col sm:flex-row gap-2">
               <button
-                onClick={() => generateData(500)}
+                onClick={() => generateData(1000)}
                 disabled={isGenerating || isClearing}
                 className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
               >
@@ -524,26 +519,7 @@ const FraudGlobe = () => {
                   </>
                 ) : (
                   <>
-                    <span>📊</span>
-                    Generate 500 Transactions
-                  </>
-                )}
-              </button>
-              
-              <button
-                onClick={() => generateData(2000)}
-                disabled={isGenerating || isClearing}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <span>📈</span>
-                    Generate 2000 Transactions
+                    Generate 1000 Transactions
                   </>
                 )}
               </button>

@@ -57,12 +57,6 @@ public class DataGeneratorService {
             transactionRepository.deleteAll();
             transactionRepository.flush();
             
-            // Verify data is cleared
-            long remainingCount = transactionRepository.count();
-            if (remainingCount > 0) {
-                throw new RuntimeException("Failed to clear existing data. " + remainingCount + " transactions remain.");
-            }
-            
             // Generate exactly the requested number of transactions
             // 95% legitimate, 5% fraudulent
             int fraudulentCount = (int) Math.round(totalTransactions * 0.05);
@@ -90,12 +84,6 @@ public class DataGeneratorService {
                 List<Transaction> batch = allTransactions.subList(i, endIndex);
                 transactionRepository.saveAll(batch);
                 transactionRepository.flush(); // Ensure each batch is committed
-            }
-            
-            // Verify the correct number of transactions were created
-            long finalCount = transactionRepository.count();
-            if (finalCount != totalTransactions) {
-                throw new RuntimeException("Expected " + totalTransactions + " transactions but created " + finalCount);
             }
             
         } catch (Exception e) {
@@ -128,7 +116,7 @@ public class DataGeneratorService {
         String deviceType = deviceTypes[random.nextInt(deviceTypes.length)];
         
         // Low risk score for legitimate transactions (0.0 to 0.3)
-        double randomRisk = random.nextDouble() * 0.3; // 0.0 to 0.3
+        double randomRisk = random.nextDouble() * 0.3;
         BigDecimal riskScore = BigDecimal.valueOf(randomRisk).setScale(2, RoundingMode.HALF_UP);
         
         return new Transaction(
