@@ -14,6 +14,12 @@ const FraudGlobe = () => {
   const [isClearing, setIsClearing] = useState(false);
   const [stats, setStats] = useState({ total: 0, fraudulent: 0, legitimate: 0, fraudRate: 0 });
   const [worldData, setWorldData] = useState(null);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [transactionFilter, setTransactionFilter] = useState('all'); 
+  const [sortConfig, setSortConfig] = useState({ key: 'timestamp', direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Load world atlas data
   useEffect(() => {
@@ -50,16 +56,16 @@ const FraudGlobe = () => {
     try {
       setLoading(true);
       
-      const transactionsResponse = await fetch('http://localhost:8080/api/transactions/fraudulent');
-      if (!transactionsResponse.ok) throw new Error('Failed to fetch fraud transactions');
+      // Fetch ALL transactions, not just fraudulent ones
+      const transactionsResponse = await fetch('http://localhost:8080/api/transactions');
+      if (!transactionsResponse.ok) throw new Error('Failed to fetch transactions');
       const transactionsData = await transactionsResponse.json();
       
       const statsResponse = await fetch('http://localhost:8080/api/transactions/stats');
       if (!statsResponse.ok) throw new Error('Failed to fetch transaction stats');
       const statsData = await statsResponse.json();
       
-      // FIXED: Use actual latitude and longitude from the transaction data
-      // No more random coordinate assignment!
+      // Process all transactions with coordinates
       const transactionsWithCoords = transactionsData.map((transaction) => {
         return {
           ...transaction,
@@ -68,7 +74,13 @@ const FraudGlobe = () => {
         };
       });
       
-      setTransactions(transactionsWithCoords);
+      // Set all transactions for the table
+      setAllTransactions(transactionsWithCoords);
+      
+      // Set only fraudulent transactions for the globe
+      const fraudTransactions = transactionsWithCoords.filter(t => t.isFraudulent);
+      setTransactions(fraudTransactions);
+      
       setStats(statsData);
     } catch (err) {
       setError(err.message);
@@ -96,7 +108,7 @@ const FraudGlobe = () => {
         throw new Error(errorData.error || 'Failed to generate data');
       }
       
-      await fetchData();
+      await fetchData(); 
     } catch (err) {
       setError(err.message);
     } finally {
@@ -119,7 +131,10 @@ const FraudGlobe = () => {
         throw new Error(errorData.error || 'Failed to clear data');
       }
       
+      // Clear all transactions including the filtered onces in the data table
       setTransactions([]);
+      setAllTransactions([]); 
+      setFilteredTransactions([]); 
       setStats({ total: 0, fraudulent: 0, legitimate: 0, fraudRate: 0 });
       setSelectedTransaction(null);
     } catch (err) {
@@ -395,6 +410,21 @@ const FraudGlobe = () => {
 
   }, [transactions, loading, worldData]);
 
+  // Filter and sort transactions when dependencies change
+  useEffect(() => {
+    const filtered = filterTransactions(allTransactions, transactionFilter);
+    const sorted = sortTransactions(filtered, sortConfig);
+    setFilteredTransactions(sorted);
+    // Reset to page 1 
+    setCurrentPage(1); 
+  }, [allTransactions, transactionFilter, sortConfig]);
+
+  // Pages for data table
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentTransactions = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+
   const formatAmount = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -404,6 +434,294 @@ const FraudGlobe = () => {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
+  };
+
+  // Transaction Table
+  const TransactionTable = () => {
+    const getSortIcon = (columnKey) => {
+      if (sortConfig.key !== columnKey) {
+        return '↕️';
+      }
+      return sortConfig.direction === 'asc' ? '↑' : '↓';
+    };
+  
+    const getFilterButtonStyle = (filterType) => {
+      const baseStyle = "px-4 py-2 rounded-lg transition-colors text-sm font-medium";
+      if (transactionFilter === filterType) {
+        switch (filterType) {
+          case 'fraud':
+            return `${baseStyle} bg-red-600 text-white`;
+          case 'legitimate':
+            return `${baseStyle} bg-green-600 text-white`;
+          default:
+            return `${baseStyle} bg-blue-600 text-white`;
+        }
+      }
+      return `${baseStyle} bg-gray-600 hover:bg-gray-500 text-gray-200`;
+    };
+  
+    return (
+      <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h2 className="text-xl font-bold">Transaction History</h2>
+          
+          {/* Filter Buttons */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setTransactionFilter('all')}
+              className={getFilterButtonStyle('all')}
+            >
+              All ({allTransactions.length})
+            </button>
+            <button
+              onClick={() => setTransactionFilter('fraud')}
+              className={getFilterButtonStyle('fraud')}
+            >
+              Fraud ({allTransactions.filter(t => t.isFraudulent).length})
+            </button>
+            <button
+              onClick={() => setTransactionFilter('legitimate')}
+              className={getFilterButtonStyle('legitimate')}
+            >
+              Legitimate ({allTransactions.filter(t => !t.isFraudulent).length})
+            </button>
+          </div>
+        </div>
+  
+        {filteredTransactions.length === 0 ? (
+          <div className="text-center text-gray-400 py-8">
+            <p>No transactions to display</p>
+            {allTransactions.length === 0 && (
+              <button
+                onClick={() => generateData(1000)}
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+              >
+                Generate Sample Data
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-600">
+                    <th 
+                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      onClick={() => handleSort('isFraudulent')}
+                    >
+                      Status {getSortIcon('isFraudulent')}
+                    </th>
+                    <th 
+                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      onClick={() => handleSort('transactionId')}
+                    >
+                      Transaction ID {getSortIcon('transactionId')}
+                    </th>
+                    <th 
+                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      onClick={() => handleSort('amount')}
+                    >
+                      Amount {getSortIcon('amount')}
+                    </th>
+                    <th 
+                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      onClick={() => handleSort('merchantName')}
+                    >
+                      Merchant {getSortIcon('merchantName')}
+                    </th>
+                    <th 
+                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      onClick={() => handleSort('merchantCategory')}
+                    >
+                      Category {getSortIcon('merchantCategory')}
+                    </th>
+                    <th 
+                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      onClick={() => handleSort('timestamp')}
+                    >
+                      Date {getSortIcon('timestamp')}
+                    </th>
+                    <th 
+                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      onClick={() => handleSort('locationCity')}
+                    >
+                      Location {getSortIcon('locationCity')}
+                    </th>
+                    <th 
+                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      onClick={() => handleSort('riskScore')}
+                    >
+                      Risk Score {getSortIcon('riskScore')}
+                    </th>
+                    <th className="text-left p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentTransactions.map((transaction) => (
+                    <tr 
+                      key={transaction.id} 
+                      className="border-b border-gray-700 hover:bg-gray-700 transition-colors"
+                    >
+                      <td className="p-3">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          transaction.isFraudulent 
+                            ? 'bg-red-900 text-red-300 border border-red-500' 
+                            : 'bg-green-900 text-green-300 border border-green-500'
+                        }`}>
+                          {transaction.isFraudulent ? '🚨 Fraud' : '✅ Safe'}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono text-xs">
+                        {transaction.transactionId.slice(-8)}...
+                      </td>
+                      <td className="p-3 font-semibold">
+                        <span className={transaction.isFraudulent ? 'text-red-400' : 'text-green-400'}>
+                          {formatAmount(transaction.amount)}
+                        </span>
+                      </td>
+                      <td className="p-3 max-w-32 truncate" title={transaction.merchantName}>
+                        {transaction.merchantName}
+                      </td>
+                      <td className="p-3 text-xs">
+                        {transaction.merchantCategory}
+                      </td>
+                      <td className="p-3 text-xs">
+                        {formatDate(transaction.timestamp)}
+                      </td>
+                      <td className="p-3 text-xs">
+                        {transaction.locationCity}, {transaction.locationCountry}
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                          parseFloat(transaction.riskScore || 0) > 0.7 
+                            ? 'bg-red-900 text-red-300' 
+                            : parseFloat(transaction.riskScore || 0) > 0.3 
+                            ? 'bg-yellow-900 text-yellow-300' 
+                            : 'bg-green-900 text-green-300'
+                        }`}>
+                          {transaction.riskScore ? (parseFloat(transaction.riskScore) * 100).toFixed(0) + '%' : 'N/A'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <button
+                          onClick={() => setSelectedTransaction(transaction)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-colors"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+  
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center mt-6">
+                <div className="text-sm text-gray-400">
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredTransactions.length)} of {filteredTransactions.length} transactions
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex gap-1">
+                    {[...Array(totalPages)].map((_, i) => {
+                      const page = i + 1;
+                      if (totalPages <= 7 || page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`px-3 py-2 text-sm rounded transition-colors ${
+                              currentPage === page 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gray-600 hover:bg-gray-500 text-white'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if ((page === currentPage - 2 && page > 1) || (page === currentPage + 2 && page < totalPages)) {
+                        return <span key={page} className="px-2 py-2 text-gray-400">...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Sort by ascending/descending logic for data table
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+    // Reset to first page when sorting
+    setCurrentPage(1); 
+  };
+
+  // Filter transactions based on fraud/legit/all
+  const filterTransactions = (transactions, filter) => {
+    switch (filter) {
+      case 'fraud':
+        return transactions.filter(t => t.isFraudulent);
+      case 'legitimate':
+        return transactions.filter(t => !t.isFraudulent);
+      default:
+        return transactions;
+    }
+  };
+
+  // Full sort transactions function
+  const sortTransactions = (transactions, config) => {
+    if (!config.key) return transactions;
+    
+    const sortedTransactions = [...transactions].sort((a, b) => {
+      let aValue = a[config.key];
+      let bValue = b[config.key];
+      
+      // Handle different data types
+      if (config.key === 'amount' || config.key === 'riskScore') {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+      } else if (config.key === 'timestamp') {
+        aValue = new Date(aValue);
+        bValue = new Date(bValue);
+      } else if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (aValue < bValue) return config.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return config.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return sortedTransactions;
   };
 
   if (loading) {
@@ -519,15 +837,9 @@ const FraudGlobe = () => {
               <div className="mt-6 text-center">
                 <div className="inline-flex items-center gap-4 text-sm text-gray-300 flex-wrap justify-center">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
                     <span>Fraud Transaction (Accurate Location)</span>
                   </div>
-                  <span>•</span>
-                  <span>🖱️ Drag to rotate</span>
-                  <span>•</span>
-                  <span>👆 Click dots for details</span>
-                  <span>•</span>
-                  <span>🔄 Auto-rotates when idle</span>
                 </div>
               </div>
             </div>
@@ -540,13 +852,6 @@ const FraudGlobe = () => {
               
               {selectedTransaction ? (
                 <div className="space-y-4">
-                  {/* Status Badge */}
-                  <div className="text-center">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-900 text-red-300 border border-red-500 animate-pulse">
-                      🚨 FRAUD DETECTED
-                    </span>
-                  </div>
-
                   {/* Transaction Info */}
                   <div className="bg-gray-700 rounded-lg p-4 space-y-3">
                     <div className="flex justify-between">
@@ -652,15 +957,6 @@ const FraudGlobe = () => {
                     <>
                       <p className="text-lg mb-2">No fraud data available</p>
                       <p className="text-sm mb-4">Generate some transactions to see the 3D globe with accurate locations</p>
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => generateData(500)}
-                          disabled={isGenerating}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm transition-colors block mx-auto"
-                        >
-                          {isGenerating ? 'Generating...' : 'Generate Sample Data'}
-                        </button>
-                      </div>
                     </>
                   ) : (
                     <>
@@ -676,6 +972,11 @@ const FraudGlobe = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Transaction Table */}
+      <div className="mt-8">
+        <TransactionTable />
       </div>
 
       {/* Footer Stats */}
