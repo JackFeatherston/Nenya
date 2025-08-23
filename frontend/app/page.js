@@ -58,42 +58,13 @@ const FraudGlobe = () => {
       if (!statsResponse.ok) throw new Error('Failed to fetch transaction stats');
       const statsData = await statsResponse.json();
       
-      // Add realistic coordinates
-      const majorCities = [
-        { name: "New York", lat: 40.7128, lng: -74.0060 },
-        { name: "London", lat: 51.5074, lng: -0.1278 },
-        { name: "Tokyo", lat: 35.6762, lng: 139.6503 },
-        { name: "Sydney", lat: -33.8688, lng: 151.2093 },
-        { name: "Mumbai", lat: 19.0760, lng: 72.8777 },
-        { name: "São Paulo", lat: -23.5505, lng: -46.6333 },
-        { name: "Cairo", lat: 30.0444, lng: 31.2357 },
-        { name: "Moscow", lat: 55.7558, lng: 37.6173 },
-        { name: "Beijing", lat: 39.9042, lng: 116.4074 },
-        { name: "Lagos", lat: 6.5244, lng: 3.3792 },
-        { name: "Mexico City", lat: 19.4326, lng: -99.1332 },
-        { name: "Berlin", lat: 52.5200, lng: 13.4050 },
-        { name: "Bangkok", lat: 13.7563, lng: 100.5018 },
-        { name: "Buenos Aires", lat: -34.6037, lng: -58.3816 },
-        { name: "Toronto", lat: 43.6532, lng: -79.3832 }
-      ];
-      
-      const transactionsWithCoords = transactionsData.map((transaction, index) => {
-        let coords;
-        if (index < majorCities.length) {
-          coords = majorCities[index];
-        } else {
-          const cityIndex = Math.floor(Math.random() * majorCities.length);
-          const baseCity = majorCities[cityIndex];
-          coords = {
-            lat: baseCity.lat + (Math.random() - 0.5) * 20,
-            lng: baseCity.lng + (Math.random() - 0.5) * 40
-          };
-        }
-        
+      // FIXED: Use actual latitude and longitude from the transaction data
+      // No more random coordinate assignment!
+      const transactionsWithCoords = transactionsData.map((transaction) => {
         return {
           ...transaction,
-          lat: Math.max(-85, Math.min(85, coords.lat)),
-          lng: coords.lng
+          lat: parseFloat(transaction.latitude) || 0,
+          lng: parseFloat(transaction.longitude) || 0
         };
       });
       
@@ -330,7 +301,7 @@ const FraudGlobe = () => {
         .style('opacity', 0.8);
     }
 
-    // Add fraud transaction dots
+
     const dots = svg
       .selectAll('.fraud-dot')
       .data(transactions)
@@ -384,7 +355,6 @@ const FraudGlobe = () => {
       svg.selectAll('.sphere').attr('d', path);
       svg.selectAll('.graticule').attr('d', path);
       
-      // Update fraud dots with visibility based on globe rotation
       svg.selectAll('.fraud-dot')
         .attr('cx', d => {
           const coords = projection([d.lng, d.lat]);
@@ -397,7 +367,7 @@ const FraudGlobe = () => {
         .style('opacity', d => {
           const coords = projection([d.lng, d.lat]);
           if (!coords) return 0;
-          // Hide dots on the back of the globe
+          // Hide dots on the back of the globe using actual coordinates
           const distance = d3.geoDistance([d.lng, d.lat], projection.invert([width/2, height/2]));
           return distance > Math.PI/2 ? 0 : 1;
         });
@@ -500,7 +470,7 @@ const FraudGlobe = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h1 className="text-3xl font-bold text-center">Global Fraud Detection</h1>
           <p className="text-gray-300 text-center mt-2">
-            Interactive 3D globe showing {transactions.length} fraud transactions. 
+            Interactive 3D globe showing {transactions.length} fraud transactions with accurate locations. 
             Drag to rotate • Click dots for details
           </p>
           
@@ -554,7 +524,7 @@ const FraudGlobe = () => {
           {(isGenerating || isClearing) && (
             <div className="bg-blue-900/50 border border-blue-500 rounded-lg p-3 mt-4 mx-auto max-w-md">
               <p className="text-blue-200 text-sm text-center">
-                {isGenerating ? 'Generating synthetic transaction data...' : 'Clearing transaction data...'}
+                {isGenerating ? 'Generating synthetic transaction data with accurate locations...' : 'Clearing transaction data...'}
               </p>
             </div>
           )}
@@ -578,7 +548,7 @@ const FraudGlobe = () => {
                 <div className="inline-flex items-center gap-4 text-sm text-gray-300 flex-wrap justify-center">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-                    <span>Fraud Transaction</span>
+                    <span>Fraud Transaction (Accurate Location)</span>
                   </div>
                   <span>•</span>
                   <span>🖱️ Drag to rotate</span>
@@ -654,6 +624,13 @@ const FraudGlobe = () => {
                     </div>
                     
                     <div className="flex justify-between">
+                      <span className="text-gray-400">Coordinates:</span>
+                      <span className="font-mono text-xs text-right">
+                        {selectedTransaction.lat.toFixed(4)}, {selectedTransaction.lng.toFixed(4)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
                       <span className="text-gray-400">Risk Score:</span>
                       <span className="font-bold text-orange-400">
                         {selectedTransaction.riskScore ? (selectedTransaction.riskScore * 100).toFixed(1) + '%' : 'N/A'}
@@ -702,7 +679,7 @@ const FraudGlobe = () => {
                   {transactions.length === 0 ? (
                     <>
                       <p className="text-lg mb-2">No fraud data available</p>
-                      <p className="text-sm mb-4">Generate some transactions to see the 3D globe in action</p>
+                      <p className="text-sm mb-4">Generate some transactions to see the 3D globe with accurate locations</p>
                       <div className="space-y-2">
                         <button
                           onClick={() => generateData(500)}
@@ -718,7 +695,7 @@ const FraudGlobe = () => {
                       <p className="text-lg mb-2">Click on a red dot</p>
                       <p className="text-sm">to view transaction details</p>
                       <div className="mt-4 text-xs text-gray-500">
-                        {transactions.length} fraud transactions detected
+                        {transactions.length} fraud transactions with accurate locations
                       </div>
                     </>
                   )}
