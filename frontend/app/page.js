@@ -375,49 +375,21 @@ const FraudGlobe = () => {
 
     // Rotation functionality
     const drag = d3.drag()
-      .on('start', function(event) {
-        // Store initial state
-      })
-      .on('drag', function(event) {
-        const rotate = projection.rotate();
-        const k = sensitivity / projection.scale();
-        projection.rotate([
-          rotate[0] + event.dx * k,
-          rotate[1] - event.dy * k
-        ]);
+    .on('start', function(event) {})
+    .on('drag', function(event) {
+      const rotate = projection.rotate();
+      const k = sensitivity / projection.scale();
+      projection.rotate([
+        rotate[0] + event.dx * k,
+        rotate[1] - event.dy * k
+      ]);
 
-        updateElements();
-      });
+      updateElements();
+    });
 
     svg.call(drag);
 
-    // Auto-rotation
-    let autoRotateTimer;
-    const startAutoRotate = () => {
-      autoRotateTimer = d3.timer(() => {
-        const rotate = projection.rotate();
-        projection.rotate([rotate[0] + 0.2, rotate[1]]);
-        updateElements();
-      });
-    };
-
-    // Stop auto-rotation on drag start, restart after delay
-    svg.on('mousedown', () => {
-      if (autoRotateTimer) autoRotateTimer.stop();
-    });
-
-    svg.on('mouseup', () => {
-      setTimeout(() => {
-        startAutoRotate();
-      }, 3000); // Resume auto-rotation after 3 seconds
-    });
-
-    // Start auto-rotation
-    startAutoRotate();
-
-    // Cleanup function
     return () => {
-      if (autoRotateTimer) autoRotateTimer.stop();
       d3.select(globeRef.current).selectAll("*").remove();
     };
 
