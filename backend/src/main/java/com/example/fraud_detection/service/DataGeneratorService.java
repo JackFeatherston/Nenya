@@ -224,6 +224,7 @@ public class DataGeneratorService {
         return new Transaction(
             transactionId, userId, merchantName, merchantCategory, amount, currency,
             timestamp, paymentMethod, cardLastFour, locationCity, locationCountry,
+            BigDecimal.valueOf(cityLocation.latitude), BigDecimal.valueOf(cityLocation.longitude),
             ipAddress, deviceType, false, null, riskScore
         );
     }
@@ -294,6 +295,7 @@ public class DataGeneratorService {
         return new Transaction(
             transactionId, userId, merchantName, merchantCategory, amount, currency,
             timestamp, paymentMethod, cardLastFour, locationCity, locationCountry,
+            BigDecimal.valueOf(cityLocation.latitude), BigDecimal.valueOf(cityLocation.longitude),
             ipAddress, deviceType, true, fraudReason, riskScore
         );
     }

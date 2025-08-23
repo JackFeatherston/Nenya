@@ -45,6 +45,13 @@ public class Transaction {
     @Column(name = "location_country")
     private String locationCountry;
     
+    // NEW: Add latitude and longitude fields
+    @Column(name = "latitude", precision = 10, scale = 7)
+    private BigDecimal latitude;
+    
+    @Column(name = "longitude", precision = 10, scale = 7)
+    private BigDecimal longitude;
+    
     @Column(name = "ip_address")
     private String ipAddress;
     
@@ -66,9 +73,9 @@ public class Transaction {
     public Transaction(String transactionId, String userId, String merchantName, 
                       String merchantCategory, BigDecimal amount, String currency,
                       LocalDateTime timestamp, String paymentMethod, String cardLastFour,
-                      String locationCity, String locationCountry, String ipAddress,
-                      String deviceType, Boolean isFraudulent, String fraudReason,
-                      BigDecimal riskScore) {
+                      String locationCity, String locationCountry, BigDecimal latitude,
+                      BigDecimal longitude, String ipAddress, String deviceType, 
+                      Boolean isFraudulent, String fraudReason, BigDecimal riskScore) {
         this.transactionId = transactionId;
         this.userId = userId;
         this.merchantName = merchantName;
@@ -80,6 +87,8 @@ public class Transaction {
         this.cardLastFour = cardLastFour;
         this.locationCity = locationCity;
         this.locationCountry = locationCountry;
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.ipAddress = ipAddress;
         this.deviceType = deviceType;
         this.isFraudulent = isFraudulent;
@@ -123,6 +132,12 @@ public class Transaction {
     
     public String getLocationCountry() { return locationCountry; }
     public void setLocationCountry(String locationCountry) { this.locationCountry = locationCountry; }
+    
+    public BigDecimal getLatitude() { return latitude; }
+    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
+    
+    public BigDecimal getLongitude() { return longitude; }
+    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
     
     public String getIpAddress() { return ipAddress; }
     public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
