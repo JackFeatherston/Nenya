@@ -471,19 +471,19 @@ const FraudGlobe = () => {
               onClick={() => setTransactionFilter('all')}
               className={getFilterButtonStyle('all')}
             >
-              All ({allTransactions.length})
+              All 
             </button>
             <button
               onClick={() => setTransactionFilter('fraud')}
               className={getFilterButtonStyle('fraud')}
             >
-              Fraud ({allTransactions.filter(t => t.isFraudulent).length})
+              Fraud 
             </button>
             <button
               onClick={() => setTransactionFilter('legitimate')}
               className={getFilterButtonStyle('legitimate')}
             >
-              Legitimate ({allTransactions.filter(t => !t.isFraudulent).length})
+              Legitimate
             </button>
           </div>
         </div>
@@ -511,13 +511,13 @@ const FraudGlobe = () => {
                       className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
                       onClick={() => handleSort('isFraudulent')}
                     >
-                      Status {getSortIcon('isFraudulent')}
+                      Status 
                     </th>
                     <th 
                       className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
                       onClick={() => handleSort('transactionId')}
                     >
-                      Transaction ID {getSortIcon('transactionId')}
+                      Transaction ID 
                     </th>
                     <th 
                       className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
@@ -565,12 +565,12 @@ const FraudGlobe = () => {
                       className="border-b border-gray-700 hover:bg-gray-700 transition-colors"
                     >
                       <td className="p-3">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                           transaction.isFraudulent 
                             ? 'bg-red-900 text-red-300 border border-red-500' 
                             : 'bg-green-900 text-green-300 border border-green-500'
                         }`}>
-                          {transaction.isFraudulent ? '🚨 Fraud' : '✅ Safe'}
+                          {transaction.isFraudulent ? 'Fraudulent' : 'Legitimate'}
                         </span>
                       </td>
                       <td className="p-3 font-mono text-xs">
@@ -759,10 +759,6 @@ const FraudGlobe = () => {
       <div className="bg-gray-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h1 className="text-3xl font-bold text-center">Global Fraud Detection</h1>
-          <p className="text-gray-300 text-center mt-2">
-            Interactive 3D globe showing {transactions.length} fraud transactions with accurate locations. 
-            Drag to rotate • Click dots for details
-          </p>
           
           {/* Data Controls */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
@@ -962,9 +958,6 @@ const FraudGlobe = () => {
                     <>
                       <p className="text-lg mb-2">Click on a red dot</p>
                       <p className="text-sm">to view transaction details</p>
-                      <div className="mt-4 text-xs text-gray-500">
-                        {transactions.length} fraud transactions with accurate locations
-                      </div>
                     </>
                   )}
                 </div>
