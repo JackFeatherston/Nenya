@@ -147,21 +147,21 @@ const FraudGlobe = () => {
   // D3.js Globe implementation with high-resolution world data
   useEffect(() => {
     if (!globeRef.current || loading) return;
-
+  
     // Clear previous globe
     d3.select(globeRef.current).selectAll("*").remove();
-
+  
     const width = 600;
     const height = 600;
     const sensitivity = 75;
-
+  
     // Create SVG
     const svg = d3
       .select(globeRef.current)
       .append('svg')
       .attr('width', width)
       .attr('height', height);
-
+  
     // Create projection and path generator
     const projection = d3
       .geoOrthographic()
@@ -169,9 +169,9 @@ const FraudGlobe = () => {
       .center([0, 0])
       .rotate([0, -30])
       .translate([width / 2, height / 2]);
-
+  
     const path = d3.geoPath().projection(projection);
-
+  
     // Create globe sphere background
     svg
       .append('path')
@@ -181,7 +181,7 @@ const FraudGlobe = () => {
       .style('fill', '#0f172a') // Dark blue ocean
       .style('stroke', '#1e293b')
       .style('stroke-width', '2px');
-
+  
     // Create graticule (grid lines)
     const graticule = d3.geoGraticule();
     
@@ -193,7 +193,7 @@ const FraudGlobe = () => {
       .style('fill', 'none')
       .style('stroke', 'rgba(148, 163, 184, 0.1)')
       .style('stroke-width', '0.5px');
-
+  
     // Draw high-resolution world data if available
     if (worldData) {
       // Draw land masses
@@ -206,7 +206,7 @@ const FraudGlobe = () => {
         .attr('d', path)
         .style('fill', '#1e40af') // Nice blue for land
         .style('stroke', 'none');
-
+  
       // Draw country boundaries
       svg
         .append('path')
@@ -217,106 +217,8 @@ const FraudGlobe = () => {
         .style('stroke', '#3b82f6') // Lighter blue for borders
         .style('stroke-width', '0.5px')
         .style('opacity', 0.6);
-    } else {
-      // Fallback: Create simple continent shapes if world data fails to load
-      console.warn('Using fallback continent shapes');
-      const fallbackWorld = {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [-160, 70], [-100, 70], [-80, 50], [-100, 40], 
-                  [-120, 30], [-140, 45], [-160, 60], [-160, 70]
-                ]
-              ]
-            },
-            properties: { name: "North America" }
-          },
-          {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [-80, 10], [-40, 10], [-30, -20], [-60, -40], 
-                  [-80, -20], [-80, 10]
-                ]
-              ]
-            },
-            properties: { name: "South America" }
-          },
-          {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [-20, 70], [40, 70], [50, 40], [30, 30], 
-                  [-10, 35], [-20, 50], [-20, 70]
-                ]
-              ]
-            },
-            properties: { name: "Europe" }
-          },
-          {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [-20, 35], [50, 35], [50, -35], [10, -35], 
-                  [-20, -10], [-20, 35]
-                ]
-              ]
-            },
-            properties: { name: "Africa" }
-          },
-          {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [50, 70], [180, 70], [180, 10], [120, 10], 
-                  [70, 30], [50, 50], [50, 70]
-                ]
-              ]
-            },
-            properties: { name: "Asia" }
-          },
-          {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [110, -10], [160, -10], [160, -45], [110, -45], [110, -10]
-                ]
-              ]
-            },
-            properties: { name: "Australia" }
-          }
-        ]
-      };
-
-      svg
-        .selectAll('.continent')
-        .data(fallbackWorld.features)
-        .enter()
-        .append('path')
-        .attr('class', 'continent')
-        .attr('d', path)
-        .style('fill', '#1e40af')
-        .style('stroke', '#3b82f6')
-        .style('stroke-width', '1px')
-        .style('opacity', 0.8);
-    }
-
-
+    } 
+  
     const dots = svg
       .selectAll('.fraud-dot')
       .data(transactions)
@@ -338,6 +240,8 @@ const FraudGlobe = () => {
       .style('cursor', 'pointer')
       .style('filter', 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))')
       .on('click', function(event, d) {
+        // Prevent event bubbling to avoid triggering drag
+        event.stopPropagation();
         setSelectedTransaction(d);
       })
       .on('mouseover', function(event, d) {
@@ -352,7 +256,7 @@ const FraudGlobe = () => {
           .duration(200)
           .attr('r', Math.max(3, Math.min(8, Math.log(parseFloat(d.amount)))));
       });
-
+  
     // Add pulsing animation to dots
     dots
       .style('opacity', 0)
@@ -360,7 +264,7 @@ const FraudGlobe = () => {
       .duration(1000)
       .delay((d, i) => i * 50)
       .style('opacity', 1);
-
+  
     // Helper function to update all elements when rotation changes
     const updateElements = () => {
       // Update all world elements
@@ -387,28 +291,154 @@ const FraudGlobe = () => {
           return distance > Math.PI/2 ? 0 : 1;
         });
     };
-
-    // Rotation functionality
+  
+    // Rotation functionality with transaction panel closure
     const drag = d3.drag()
-    .on('start', function(event) {})
-    .on('drag', function(event) {
-      const rotate = projection.rotate();
-      const k = sensitivity / projection.scale();
-      projection.rotate([
-        rotate[0] + event.dx * k,
-        rotate[1] - event.dy * k
-      ]);
-
-      updateElements();
-    });
-
+      .on('start', function(event) {
+        // Clear selected transaction when drag starts
+        setSelectedTransaction(null);
+      })
+      .on('drag', function(event) {
+        const rotate = projection.rotate();
+        const k = sensitivity / projection.scale();
+        projection.rotate([
+          rotate[0] + event.dx * k,
+          rotate[1] - event.dy * k
+        ]);
+  
+        updateElements();
+      });
+  
     svg.call(drag);
-
+  
     return () => {
       d3.select(globeRef.current).selectAll("*").remove();
     };
-
+  
   }, [transactions, loading, worldData]);
+
+  const TransactionDetailsPanel = () => {
+    // Only render the panel if a transaction is selected
+    if (!selectedTransaction) {
+      return null;
+    }
+  
+    return (
+      <div className="xl:w-96 w-full">
+        <div className="bg-gray-800 rounded-lg p-6 shadow-xl h-full relative">
+          {/* Close button */}
+          <button
+            onClick={() => setSelectedTransaction(null)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700"
+            title="Close transaction details"
+          >
+            ×
+          </button>
+  
+          <h2 className="text-xl font-bold mb-4 text-center pr-8">Transaction Details</h2>
+          
+          <div className="space-y-4">
+            {/* Transaction Info */}
+            <div className="bg-gray-700 rounded-lg p-4 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Transaction ID:</span>
+                <span className="font-mono text-sm text-right">{selectedTransaction.transactionId}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-400">Amount:</span>
+                <span className="font-bold text-red-400 text-lg">
+                  {formatAmount(selectedTransaction.amount)}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-400">Date:</span>
+                <span>{formatDate(selectedTransaction.timestamp)}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-400">Merchant:</span>
+                <span className="text-right max-w-[60%] truncate">{selectedTransaction.merchantName}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-400">Category:</span>
+                <span>{selectedTransaction.merchantCategory}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-400">Payment:</span>
+                <span>{selectedTransaction.paymentMethod}</span>
+              </div>
+              
+              {selectedTransaction.cardLastFour && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Card:</span>
+                  <span className="font-mono">****{selectedTransaction.cardLastFour}</span>
+                </div>
+              )}
+              
+              <div className="flex justify-between">
+                <span className="text-gray-400">Location:</span>
+                <span className="text-right text-sm max-w-[60%]">
+                  {selectedTransaction.locationCity}, {selectedTransaction.locationCountry}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-400">Coordinates:</span>
+                <span className="font-mono text-xs text-right">
+                  {selectedTransaction.lat.toFixed(4)}, {selectedTransaction.lng.toFixed(4)}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-400">Risk Score:</span>
+                <span className="font-bold text-orange-400">
+                  {selectedTransaction.riskScore ? (selectedTransaction.riskScore * 100).toFixed(1) + '%' : 'N/A'}
+                </span>
+              </div>
+            </div>
+  
+            {/* Fraud Status Badge */}
+            <div className="text-center">
+              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-red-900 text-red-300 border border-red-500">
+                🚨 FRAUDULENT TRANSACTION
+              </span>
+            </div>
+  
+            {/* Fraud Reason */}
+            {selectedTransaction.fraudReason && (
+              <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-3">
+                <h4 className="text-red-300 font-semibold mb-2">Fraud Reason:</h4>
+                <p className="text-red-200 text-sm">{selectedTransaction.fraudReason}</p>
+              </div>
+            )}
+  
+            {/* User Info */}
+            <div className="bg-gray-700 rounded-lg p-3">
+              <h4 className="text-gray-300 font-semibold mb-2">User Information:</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">User ID:</span>
+                  <span className="font-mono">{selectedTransaction.userId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Device:</span>
+                  <span>{selectedTransaction.deviceType}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">IP Address:</span>
+                  <span className="font-mono text-xs">{selectedTransaction.ipAddress}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Filter and sort transactions when dependencies change
   useEffect(() => {
@@ -842,128 +872,7 @@ const FraudGlobe = () => {
           </div>
 
           {/* Transaction Details Panel */}
-          <div className="xl:w-96 w-full">
-            <div className="bg-gray-800 rounded-lg p-6 shadow-xl h-full">
-              <h2 className="text-xl font-bold mb-4 text-center">Transaction Details</h2>
-              
-              {selectedTransaction ? (
-                <div className="space-y-4">
-                  {/* Transaction Info */}
-                  <div className="bg-gray-700 rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Transaction ID:</span>
-                      <span className="font-mono text-sm text-right">{selectedTransaction.transactionId}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Amount:</span>
-                      <span className="font-bold text-red-400 text-lg">
-                        {formatAmount(selectedTransaction.amount)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Date:</span>
-                      <span>{formatDate(selectedTransaction.timestamp)}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Merchant:</span>
-                      <span className="text-right max-w-[60%] truncate">{selectedTransaction.merchantName}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Category:</span>
-                      <span>{selectedTransaction.merchantCategory}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Payment:</span>
-                      <span>{selectedTransaction.paymentMethod}</span>
-                    </div>
-                    
-                    {selectedTransaction.cardLastFour && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Card:</span>
-                        <span className="font-mono">****{selectedTransaction.cardLastFour}</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Location:</span>
-                      <span className="text-right text-sm max-w-[60%]">
-                        {selectedTransaction.locationCity}, {selectedTransaction.locationCountry}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Coordinates:</span>
-                      <span className="font-mono text-xs text-right">
-                        {selectedTransaction.lat.toFixed(4)}, {selectedTransaction.lng.toFixed(4)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Risk Score:</span>
-                      <span className="font-bold text-orange-400">
-                        {selectedTransaction.riskScore ? (selectedTransaction.riskScore * 100).toFixed(1) + '%' : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Fraud Reason */}
-                  {selectedTransaction.fraudReason && (
-                    <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-3">
-                      <h4 className="text-red-300 font-semibold mb-2">Fraud Reason:</h4>
-                      <p className="text-red-200 text-sm">{selectedTransaction.fraudReason}</p>
-                    </div>
-                  )}
-
-                  {/* User Info */}
-                  <div className="bg-gray-700 rounded-lg p-3">
-                    <h4 className="text-gray-300 font-semibold mb-2">User Information:</h4>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">User ID:</span>
-                        <span className="font-mono">{selectedTransaction.userId}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Device:</span>
-                        <span>{selectedTransaction.deviceType}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">IP Address:</span>
-                        <span className="font-mono text-xs">{selectedTransaction.ipAddress}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Clear Selection Button */}
-                  <button
-                    onClick={() => setSelectedTransaction(null)}
-                    className="w-full bg-gray-600 hover:bg-gray-500 text-white py-2 px-4 rounded-lg transition-colors"
-                  >
-                    Clear Selection
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center text-gray-400 py-12">
-                  <div className="text-4xl mb-4">🌍</div>
-                  {transactions.length === 0 ? (
-                    <>
-                      <p className="text-lg mb-2">No fraud data available</p>
-                      <p className="text-sm mb-4">Generate some transactions to see the 3D globe with accurate locations</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-lg mb-2">Click on a red dot</p>
-                      <p className="text-sm">to view transaction details</p>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          <TransactionDetailsPanel/>
         </div>
       </div>
 
