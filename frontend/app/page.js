@@ -41,11 +41,7 @@ const FraudGlobe = () => {
         };
         
         setWorldData(worldGeoData);
-      } catch (err) {
-        console.warn('Could not load world atlas data:', err);
-        // Fallback to basic shapes if world data fails to load
-        setWorldData(null);
-      }
+      } catch (err) {}
     };
 
     loadWorldData();
@@ -144,15 +140,15 @@ const FraudGlobe = () => {
     }
   };
 
-  // D3.js Globe implementation with high-resolution world data
+  // Globe implementation 
   useEffect(() => {
     if (!globeRef.current || loading) return;
   
     // Clear previous globe
     d3.select(globeRef.current).selectAll("*").remove();
   
-    const width = 600;
-    const height = 600;
+    const width = 1000;
+    const height = 1000;
     const sensitivity = 75;
   
     // Create SVG
