@@ -2,10 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom color palette variables */
+:root {
+  --primary-blue: #4267B3;
+  --light-gray: #E9EBEE;
+  --medium-gray: #90949C;
+  --dark-gray: #616771;
+}
+
 /* Custom styles for your fraud detection globe */
 @layer components {
   .fraud-globe-container {
-    @apply bg-gray-900 rounded-lg shadow-xl border border-gray-700;
+    background-color: var(--light-gray);
+    border: 1px solid var(--medium-gray);
+    @apply rounded-lg shadow-xl;
   }
   
   .fraud-dot {
@@ -15,9 +25,32 @@
   .fraud-dot:hover {
     transform: scale(1.2);
   }
+
+  /* Custom card styling using the color palette */
+  .custom-card {
+    background-color: var(--light-gray);
+    border: 1px solid var(--medium-gray);
+    color: var(--dark-gray);
+  }
+
+  .custom-card-dark {
+    background-color: var(--dark-gray);
+    border: 1px solid var(--medium-gray);
+    color: var(--light-gray);
+  }
+
+  .custom-button-primary {
+    background-color: var(--primary-blue);
+    color: var(--light-gray);
+  }
+
+  .custom-button-primary:hover {
+    background-color: #335a94; /* Darker shade of primary blue */
+  }
 }
 
-/* Ensure the body has a dark theme by default */
+/* Ensure the body uses the new color palette */
 body {
-  @apply bg-gray-900 text-white;
+  background-color: var(--light-gray);
+  color: var(--dark-gray);
 }

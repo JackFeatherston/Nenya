@@ -39,7 +39,7 @@ export const FraudVsLegitChart = ({ transactions }) => {
           legend: {
             position: 'bottom',
             labels: {
-              color: '#e5e7eb',
+              color: '#616771',
               font: {
                 size: 12
               }
@@ -65,8 +65,10 @@ export const FraudVsLegitChart = ({ transactions }) => {
   }, [transactions]);
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
-      <h3 className="text-lg font-semibold mb-4 text-center">Fraud vs No Fraud</h3>
+    <div className="custom-card rounded-lg p-6 shadow-xl">
+      <h3 className="text-lg font-semibold mb-4 text-center" style={{ color: '#616771' }}>
+        Fraud vs No Fraud
+      </h3>
       <div className="h-64">
         <canvas ref={chartRef}></canvas>
       </div>
@@ -124,7 +126,7 @@ export const MerchantFraudChart = ({ transactions }) => {
           legend: {
             position: 'bottom',
             labels: {
-              color: '#e5e7eb',
+              color: '#616771',
               font: {
                 size: 10
               }
@@ -151,8 +153,10 @@ export const MerchantFraudChart = ({ transactions }) => {
   }, [transactions]);
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
-      <h3 className="text-lg font-semibold mb-4 text-center">Merchant Categories with Fraud Percentages</h3>
+    <div className="custom-card rounded-lg p-6 shadow-xl">
+      <h3 className="text-lg font-semibold mb-4 text-center" style={{ color: '#616771' }}>
+        Merchant Categories with Fraud Percentages
+      </h3>
       <div className="h-64">
         <canvas ref={chartRef}></canvas>
       </div>
@@ -204,19 +208,19 @@ export const FraudulentReasonsChart = ({ transactions }) => {
           y: {
             beginAtZero: true,
             ticks: {
-              color: '#e5e7eb'
+              color: '#616771'
             },
             grid: {
-              color: '#374151'
+              color: '#90949C'
             }
           },
           x: {
             ticks: {
-              color: '#e5e7eb',
+              color: '#616771',
               maxRotation: 45
             },
             grid: {
-              color: '#374151'
+              color: '#90949C'
             }
           }
         },
@@ -236,8 +240,10 @@ export const FraudulentReasonsChart = ({ transactions }) => {
   }, [transactions]);
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
-      <h3 className="text-lg font-semibold mb-4 text-center">Fraudulent Reasons Bar Chart</h3>
+    <div className="custom-card rounded-lg p-6 shadow-xl">
+      <h3 className="text-lg font-semibold mb-4 text-center" style={{ color: '#616771' }}>
+        Fraudulent Reasons Bar Chart
+      </h3>
       <div className="h-64">
         <canvas ref={chartRef}></canvas>
       </div>
@@ -282,48 +288,49 @@ export const AnalyticsCards = ({ transactions }) => {
     <div className="space-y-8">
       {/* Middle Row - Primary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl text-center">
+        <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-red-400 mb-2">{fraudRate}%</div>
-          <div className="text-gray-400 text-sm">Fraud Rate %</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Fraud Rate %</div>
         </div>
         
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl text-center">
+        <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-orange-400 mb-2">{fraudLossesPercentage}%</div>
-          <div className="text-gray-400 text-sm">Fraud Losses as a Percentage of Revenue</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Fraud Losses as a Percentage of Revenue</div>
         </div>
         
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl text-center">
+        <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-yellow-400 mb-2">{formatAmount(fraudLosses)}</div>
-          <div className="text-gray-400 text-sm">Fraud Amount $</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Fraud Amount $</div>
         </div>
         
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl text-center">
+        <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-purple-400 mb-2">{averageRiskScore}%</div>
-          <div className="text-gray-400 text-sm">Avg Risk Score</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Avg Risk Score</div>
         </div>
       </div>
 
       {/* Bottom Row - Additional Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl text-center">
-          <div className="text-3xl font-bold text-blue-400 mb-2">{formatAmount(averageTransactionAmount)}</div>
-          <div className="text-gray-400 text-sm">Avg Fraud Transaction Amount</div>
+        <div className="custom-card rounded-lg p-6 shadow-xl text-center">
+          <div className="text-3xl font-bold mb-2" style={{ color: '#4267B3' }}>
+            {formatAmount(averageTransactionAmount)}
+          </div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Avg Transaction Amount</div>
         </div>
         
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl text-center">
+        <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-green-400 mb-2">{formatAmount(averageFraudAmount)}</div>
-          <div className="text-gray-400 text-sm">Avg Fraud Amount</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Avg Fraud Amount</div>
         </div>
         
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl text-center">
+        <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-indigo-400 mb-2">{highRiskTransactions}</div>
-          <div className="text-gray-400 text-sm">High Risk Transactions </div>
-          {/* (>70%) */}
+          <div className="text-sm" style={{ color: '#90949C' }}>High Risk Transactions</div>
         </div>
         
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl text-center">
+        <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-cyan-400 mb-2">{uniqueUsers}</div>
-          <div className="text-gray-400 text-sm">Unique Users</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Unique Users</div>
         </div>
       </div>
     </div>

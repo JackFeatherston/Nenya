@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { FraudVsLegitChart, MerchantFraudChart, FraudulentReasonsChart, AnalyticsCards } from './analytics.js';
+import Navbar from './navbar.js';
 
 const FraudGlobe = () => {
   const globeRef = useRef();
@@ -175,8 +176,8 @@ const FraudGlobe = () => {
       .datum({ type: 'Sphere' })
       .attr('class', 'sphere')
       .attr('d', path)
-      .style('fill', '#0f172a') // Dark blue ocean
-      .style('stroke', '#1e293b')
+      .style('fill', '#4267B3') // Primary blue ocean
+      .style('stroke', '#616771')
       .style('stroke-width', '2px');
   
     // Create graticule (grid lines)
@@ -188,7 +189,7 @@ const FraudGlobe = () => {
       .attr('class', 'graticule')
       .attr('d', path)
       .style('fill', 'none')
-      .style('stroke', 'rgba(148, 163, 184, 0.1)')
+      .style('stroke', 'rgba(144, 148, 156, 0.3)')
       .style('stroke-width', '0.5px');
   
     // Draw high-resolution world data if available
@@ -201,7 +202,7 @@ const FraudGlobe = () => {
         .append('path')
         .attr('class', 'land')
         .attr('d', path)
-        .style('fill', '#1e40af') // Nice blue for land
+        .style('fill', '#90949C') // Medium gray for land
         .style('stroke', 'none');
   
       // Draw country boundaries
@@ -211,9 +212,9 @@ const FraudGlobe = () => {
         .attr('class', 'country-borders')
         .attr('d', path)
         .style('fill', 'none')
-        .style('stroke', '#3b82f6') // Lighter blue for borders
+        .style('stroke', '#616771') // Dark gray for borders
         .style('stroke-width', '0.5px')
-        .style('opacity', 0.6);
+        .style('opacity', 0.8);
     } 
   
     const dots = svg
@@ -322,76 +323,89 @@ const FraudGlobe = () => {
   
     return (
       <div className="xl:w-96 w-full">
-        <div className="bg-gray-800 rounded-lg p-6 shadow-xl h-full relative">
+        <div 
+          className="rounded-lg p-6 shadow-xl h-full relative custom-card"
+        >
           {/* Close button */}
           <button
             onClick={() => setSelectedTransaction(null)}
-            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700"
+            className="absolute top-4 right-4 transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:opacity-70"
+            style={{ color: '#90949C' }}
             title="Close transaction details"
           >
             ×
           </button>
   
-          <h2 className="text-xl font-bold mb-4 text-center pr-8">Transaction Details</h2>
+          <h2 className="text-xl font-bold mb-4 text-center pr-8" style={{ color: '#616771' }}>
+            Transaction Details
+          </h2>
           
           <div className="space-y-4">
             {/* Transaction Info */}
-            <div className="bg-gray-700 rounded-lg p-4 space-y-3">
+            <div 
+              className="rounded-lg p-4 space-y-3 custom-card-dark"
+            >
               <div className="flex justify-between">
-                <span className="text-gray-400">Transaction ID:</span>
-                <span className="font-mono text-sm text-right">{selectedTransaction.transactionId}</span>
+                <span style={{ color: '#90949C' }}>Transaction ID:</span>
+                <span className="font-mono text-sm text-right" style={{ color: '#E9EBEE' }}>
+                  {selectedTransaction.transactionId}
+                </span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-400">Amount:</span>
+                <span style={{ color: '#90949C' }}>Amount:</span>
                 <span className="font-bold text-red-400 text-lg">
                   {formatAmount(selectedTransaction.amount)}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-400">Date:</span>
-                <span>{formatDate(selectedTransaction.timestamp)}</span>
+                <span style={{ color: '#90949C' }}>Date:</span>
+                <span style={{ color: '#E9EBEE' }}>{formatDate(selectedTransaction.timestamp)}</span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-400">Merchant:</span>
-                <span className="text-right max-w-[60%] truncate">{selectedTransaction.merchantName}</span>
+                <span style={{ color: '#90949C' }}>Merchant:</span>
+                <span className="text-right max-w-[60%] truncate" style={{ color: '#E9EBEE' }}>
+                  {selectedTransaction.merchantName}
+                </span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-400">Category:</span>
-                <span>{selectedTransaction.merchantCategory}</span>
+                <span style={{ color: '#90949C' }}>Category:</span>
+                <span style={{ color: '#E9EBEE' }}>{selectedTransaction.merchantCategory}</span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-400">Payment:</span>
-                <span>{selectedTransaction.paymentMethod}</span>
+                <span style={{ color: '#90949C' }}>Payment:</span>
+                <span style={{ color: '#E9EBEE' }}>{selectedTransaction.paymentMethod}</span>
               </div>
               
               {selectedTransaction.cardLastFour && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Card:</span>
-                  <span className="font-mono">****{selectedTransaction.cardLastFour}</span>
+                  <span style={{ color: '#90949C' }}>Card:</span>
+                  <span className="font-mono" style={{ color: '#E9EBEE' }}>
+                    ****{selectedTransaction.cardLastFour}
+                  </span>
                 </div>
               )}
               
               <div className="flex justify-between">
-                <span className="text-gray-400">Location:</span>
-                <span className="text-right text-sm max-w-[60%]">
+                <span style={{ color: '#90949C' }}>Location:</span>
+                <span className="text-right text-sm max-w-[60%]" style={{ color: '#E9EBEE' }}>
                   {selectedTransaction.locationCity}, {selectedTransaction.locationCountry}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-400">Coordinates:</span>
-                <span className="font-mono text-xs text-right">
+                <span style={{ color: '#90949C' }}>Coordinates:</span>
+                <span className="font-mono text-xs text-right" style={{ color: '#E9EBEE' }}>
                   {selectedTransaction.lat.toFixed(4)}, {selectedTransaction.lng.toFixed(4)}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-400">Risk Score:</span>
+                <span style={{ color: '#90949C' }}>Risk Score:</span>
                 <span className="font-bold text-orange-400">
                   {selectedTransaction.riskScore ? (selectedTransaction.riskScore * 100).toFixed(1) + '%' : 'N/A'}
                 </span>
@@ -414,20 +428,24 @@ const FraudGlobe = () => {
             )}
   
             {/* User Info */}
-            <div className="bg-gray-700 rounded-lg p-3">
-              <h4 className="text-gray-300 font-semibold mb-2">User Information:</h4>
+            <div className="custom-card-dark rounded-lg p-3">
+              <h4 className="font-semibold mb-2" style={{ color: '#90949C' }}>User Information:</h4>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">User ID:</span>
-                  <span className="font-mono">{selectedTransaction.userId}</span>
+                  <span style={{ color: '#90949C' }}>User ID:</span>
+                  <span className="font-mono" style={{ color: '#E9EBEE' }}>
+                    {selectedTransaction.userId}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Device:</span>
-                  <span>{selectedTransaction.deviceType}</span>
+                  <span style={{ color: '#90949C' }}>Device:</span>
+                  <span style={{ color: '#E9EBEE' }}>{selectedTransaction.deviceType}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">IP Address:</span>
-                  <span className="font-mono text-xs">{selectedTransaction.ipAddress}</span>
+                  <span style={{ color: '#90949C' }}>IP Address:</span>
+                  <span className="font-mono text-xs" style={{ color: '#E9EBEE' }}>
+                    {selectedTransaction.ipAddress}
+                  </span>
                 </div>
               </div>
             </div>
@@ -481,16 +499,16 @@ const FraudGlobe = () => {
           case 'legitimate':
             return `${baseStyle} bg-green-600 text-white`;
           default:
-            return `${baseStyle} bg-blue-600 text-white`;
+            return `${baseStyle} custom-button-primary`;
         }
       }
-      return `${baseStyle} bg-gray-600 hover:bg-gray-500 text-gray-200`;
+      return `${baseStyle} custom-card hover:opacity-80`;
     };
   
     return (
-      <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
+      <div className="custom-card rounded-lg p-6 shadow-xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h2 className="text-xl font-bold">Transaction History</h2>
+          <h2 className="text-xl font-bold" style={{ color: '#616771' }}>Transaction History</h2>
           
           {/* Filter Buttons */}
           <div className="flex gap-2 flex-wrap">
@@ -516,16 +534,8 @@ const FraudGlobe = () => {
         </div>
   
         {filteredTransactions.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+          <div className="text-center py-8" style={{ color: '#90949C' }}>
             <p>No transactions to display</p>
-            {allTransactions.length === 0 && (
-              <button
-                onClick={() => generateData(1000)}
-                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-              >
-                Generate Sample Data
-              </button>
-            )}
           </div>
         ) : (
           <>
@@ -533,63 +543,72 @@ const FraudGlobe = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-600">
+                  <tr className="border-b" style={{ borderColor: '#90949C' }}>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      style={{ color: '#616771' }}
                       onClick={() => handleSort('isFraudulent')}
                     >
                       Status 
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      style={{ color: '#616771' }}
                       onClick={() => handleSort('transactionId')}
                     >
                       Transaction ID 
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      style={{ color: '#616771' }}
                       onClick={() => handleSort('amount')}
                     >
                       Amount {getSortIcon('amount')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      style={{ color: '#616771' }}
                       onClick={() => handleSort('merchantName')}
                     >
                       Merchant {getSortIcon('merchantName')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      style={{ color: '#616771' }}
                       onClick={() => handleSort('merchantCategory')}
                     >
                       Category {getSortIcon('merchantCategory')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      style={{ color: '#616771' }}
                       onClick={() => handleSort('timestamp')}
                     >
                       Date {getSortIcon('timestamp')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      style={{ color: '#616771' }}
                       onClick={() => handleSort('locationCity')}
                     >
                       Location {getSortIcon('locationCity')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:bg-gray-700 rounded"
+                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      style={{ color: '#616771' }}
                       onClick={() => handleSort('riskScore')}
                     >
                       Risk Score {getSortIcon('riskScore')}
                     </th>
-                    <th className="text-left p-3">Actions</th>
+                    <th className="text-left p-3" style={{ color: '#616771' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentTransactions.map((transaction) => (
                     <tr 
                       key={transaction.id} 
-                      className="border-b border-gray-700 hover:bg-gray-700 transition-colors"
+                      className="border-b hover:opacity-80 transition-colors"
+                      style={{ borderColor: '#90949C' }}
                     >
                       <td className="p-3">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
@@ -600,7 +619,7 @@ const FraudGlobe = () => {
                           {transaction.isFraudulent ? 'Fraudulent' : 'Legitimate'}
                         </span>
                       </td>
-                      <td className="p-3 font-mono text-xs">
+                      <td className="p-3 font-mono text-xs" style={{ color: '#616771' }}>
                         {transaction.transactionId.slice(-8)}...
                       </td>
                       <td className="p-3 font-semibold">
@@ -608,16 +627,16 @@ const FraudGlobe = () => {
                           {formatAmount(transaction.amount)}
                         </span>
                       </td>
-                      <td className="p-3 max-w-32 truncate" title={transaction.merchantName}>
+                      <td className="p-3 max-w-32 truncate" style={{ color: '#616771' }} title={transaction.merchantName}>
                         {transaction.merchantName}
                       </td>
-                      <td className="p-3 text-xs">
+                      <td className="p-3 text-xs" style={{ color: '#90949C' }}>
                         {transaction.merchantCategory}
                       </td>
-                      <td className="p-3 text-xs">
+                      <td className="p-3 text-xs" style={{ color: '#90949C' }}>
                         {formatDate(transaction.timestamp)}
                       </td>
-                      <td className="p-3 text-xs">
+                      <td className="p-3 text-xs" style={{ color: '#90949C' }}>
                         {transaction.locationCity}, {transaction.locationCountry}
                       </td>
                       <td className="p-3">
@@ -634,7 +653,7 @@ const FraudGlobe = () => {
                       <td className="p-3">
                         <button
                           onClick={() => setSelectedTransaction(transaction)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-colors"
+                          className="custom-button-primary px-2 py-1 rounded text-xs transition-colors"
                         >
                           View
                         </button>
@@ -648,14 +667,15 @@ const FraudGlobe = () => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-between items-center mt-6">
-                <div className="text-sm text-gray-400">
+                <div className="text-sm" style={{ color: '#90949C' }}>
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredTransactions.length)} of {filteredTransactions.length} transactions
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                    className="px-3 py-2 custom-card hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                    style={{ color: '#616771' }}
                   >
                     Previous
                   </button>
@@ -670,15 +690,16 @@ const FraudGlobe = () => {
                             onClick={() => setCurrentPage(page)}
                             className={`px-3 py-2 text-sm rounded transition-colors ${
                               currentPage === page 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-gray-600 hover:bg-gray-500 text-white'
+                                ? 'custom-button-primary' 
+                                : 'custom-card hover:opacity-80'
                             }`}
+                            style={currentPage !== page ? { color: '#616771' } : {}}
                           >
                             {page}
                           </button>
                         );
                       } else if ((page === currentPage - 2 && page > 1) || (page === currentPage + 2 && page < totalPages)) {
-                        return <span key={page} className="px-2 py-2 text-gray-400">...</span>;
+                        return <span key={page} className="px-2 py-2" style={{ color: '#90949C' }}>...</span>;
                       }
                       return null;
                     })}
@@ -687,7 +708,8 @@ const FraudGlobe = () => {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                    className="px-3 py-2 custom-card hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                    style={{ color: '#616771' }}
                   >
                     Next
                   </button>
@@ -753,11 +775,14 @@ const FraudGlobe = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900">
+      <div className="flex items-center justify-center h-screen" style={{ backgroundColor: '#E9EBEE' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading fraud data...</p>
-          <p className="text-gray-400 text-sm mt-2">Fetching high-resolution world map...</p>
+          <div 
+            className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4"
+            style={{ borderColor: '#4267B3' }}
+          ></div>
+          <p className="text-lg" style={{ color: '#616771' }}>Loading fraud data...</p>
+          <p className="text-sm mt-2" style={{ color: '#90949C' }}>Fetching high-resolution world map...</p>
         </div>
       </div>
     );
@@ -765,7 +790,7 @@ const FraudGlobe = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900">
+      <div className="flex items-center justify-center h-screen" style={{ backgroundColor: '#E9EBEE' }}>
         <div className="bg-red-900 border border-red-500 rounded-lg p-6 max-w-md">
           <h2 className="text-red-300 text-xl font-bold mb-2">Error Loading Data</h2>
           <p className="text-red-200">{error}</p>
@@ -781,84 +806,91 @@ const FraudGlobe = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen" style={{ backgroundColor: '#E9EBEE', color: '#616771' }}>
+      <Navbar />
+      
       {/* Header */}
-      <div className="bg-gray-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl font-bold text-center">Global Fraud Detection</h1>
-          
-          {/* Data Controls */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={() => generateData(1000)}
-                disabled={isGenerating || isClearing}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    Generate 1000 Transactions
-                  </>
-                )}
-              </button>
-            </div>
-            
-            <button
-              onClick={clearData}
-              disabled={isGenerating || isClearing}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-            >
-              {isClearing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Clearing...
-                </>
-              ) : (
-                <>
-                  <span>🗑️</span>
-                  Clear All Data
-                </>
-              )}
-            </button>
-          </div>
-          
-          {/* Status Messages */}
-          {error && (
-            <div className="bg-red-900/50 border border-red-500 rounded-lg p-3 mt-4 mx-auto max-w-md">
-              <p className="text-red-200 text-sm text-center">{error}</p>
-            </div>
-          )}
-          
-          {(isGenerating || isClearing) && (
-            <div className="bg-blue-900/50 border border-blue-500 rounded-lg p-3 mt-4 mx-auto max-w-md">
-              <p className="text-blue-200 text-sm text-center">
-                {isGenerating ? 'Generating synthetic transaction data with accurate locations...' : 'Clearing transaction data...'}
-              </p>
-            </div>
-          )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        {/* Data Controls */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={() => generateData(1000)}
+            disabled={isGenerating || isClearing}
+            className="custom-button-primary disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <div 
+                  className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"
+                ></div>
+                Generating...
+              </>
+            ) : (
+              <>
+                Generate 1000 Transactions
+              </>
+            )}
+          </button>
         </div>
+          
+        <button
+          onClick={clearData}
+          disabled={isGenerating || isClearing}
+          className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+        >
+          {isClearing ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+              Clearing...
+            </>
+          ) : (
+            <>
+              <span>🗑️</span>
+              Clear All Data
+            </>
+          )}
+        </button>
+
+        
+        {/* Status Messages */}
+        {error && (
+          <div className="bg-red-900/50 border border-red-500 rounded-lg p-3 mt-4 mx-auto max-w-md">
+            <p className="text-red-200 text-sm text-center">{error}</p>
+          </div>
+        )}
+        
+        {(isGenerating || isClearing) && (
+          <div 
+            className="border rounded-lg p-3 mt-4 mx-auto max-w-md"
+            style={{ backgroundColor: '#4267B3', borderColor: '#616771' }}
+          >
+            <p className="text-sm text-center" style={{ color: '#E9EBEE' }}>
+              {isGenerating ? 'Generating synthetic transaction data with accurate locations...' : 'Clearing transaction data...'}
+            </p>
+          </div>
+        )}
       </div>
+
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col xl:flex-row gap-8">
           {/* Globe Container */}
           <div className="flex-1">
-            <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
+            <div className="fraud-globe-container p-6">
               <div className="flex justify-center">
-                <div className="border-2 border-gray-600 rounded-lg p-4 bg-gray-900">
+                <div 
+                  className="border-2 rounded-lg p-4"
+                  style={{ borderColor: '#90949C', backgroundColor: '#616771' }}
+                >
                   <div ref={globeRef} className="cursor-move"></div>
                 </div>
               </div>
               
               {/* Controls */}
               <div className="mt-6 text-center">
-                <div className="inline-flex items-center gap-4 text-sm text-gray-300 flex-wrap justify-center">
+                <div className="inline-flex items-center gap-4 text-sm flex-wrap justify-center" style={{ color: '#90949C' }}>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
                     <span>Fraud Transaction (Accurate Location)</span>
@@ -874,12 +906,12 @@ const FraudGlobe = () => {
       </div>
 
       {/* Transaction Table */}
-      <div className="mt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <TransactionTable />
       </div>
 
       {/* Analytics Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div id="insights" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Top Row - Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <FraudVsLegitChart transactions={allTransactions} />
@@ -892,43 +924,43 @@ const FraudGlobe = () => {
       </div>
 
       {/* Footer Stats */}
-      <div className="bg-gray-800 mt-12">
+      <div className="custom-card-dark mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
             <div>
-              <div className="text-2xl font-bold text-blue-400">{stats.total}</div>
-              <div className="text-gray-400">Total Transactions</div>
+              <div className="text-2xl font-bold" style={{ color: '#4267B3' }}>{stats.total}</div>
+              <div style={{ color: '#90949C' }}>Total Transactions</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-red-400">{stats.fraudulent}</div>
-              <div className="text-gray-400">Fraud Transactions</div>
+              <div style={{ color: '#90949C' }}>Fraud Transactions</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-green-400">{stats.legitimate}</div>
-              <div className="text-gray-400">Legitimate Transactions</div>
+              <div style={{ color: '#90949C' }}>Legitimate Transactions</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-orange-400">
                 {stats.fraudRate ? stats.fraudRate.toFixed(2) + '%' : '0%'}
               </div>
-              <div className="text-gray-400">Fraud Rate</div>
+              <div style={{ color: '#90949C' }}>Fraud Rate</div>
             </div>
           </div>
           
           {transactions.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-gray-700">
+            <div className="mt-6 pt-4 border-t" style={{ borderColor: '#90949C' }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
                 <div>
                   <div className="text-xl font-bold text-yellow-400">
                     {formatAmount(transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0))}
                   </div>
-                  <div className="text-gray-400">Total Fraud Amount</div>
+                  <div style={{ color: '#90949C' }}>Total Fraud Amount</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-purple-400">
                     {(transactions.reduce((sum, t) => sum + parseFloat(t.riskScore || 0), 0) / transactions.length * 100).toFixed(1) + '%'}
                   </div>
-                  <div className="text-gray-400">Avg Risk Score</div>
+                  <div style={{ color: '#90949C' }}>Avg Risk Score</div>
                 </div>
               </div>
             </div>
