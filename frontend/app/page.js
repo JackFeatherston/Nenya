@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
+import { FraudVsLegitChart, MerchantFraudChart, FraudulentReasonsChart, AnalyticsCards } from './analytics.js';
 
 const FraudGlobe = () => {
   const globeRef = useRef();
@@ -875,6 +876,19 @@ const FraudGlobe = () => {
       {/* Transaction Table */}
       <div className="mt-8">
         <TransactionTable />
+      </div>
+
+      {/* Analytics Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Top Row - Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <FraudVsLegitChart transactions={allTransactions} />
+          <MerchantFraudChart transactions={allTransactions} />
+          <FraudulentReasonsChart transactions={allTransactions} />
+        </div>
+        
+        {/* Analytics Cards */}
+        <AnalyticsCards transactions={allTransactions} />
       </div>
 
       {/* Footer Stats */}
