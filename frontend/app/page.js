@@ -987,6 +987,40 @@ const FraudGlobe = () => {
           <TransactionTable />
         </div>
 
+        {/* Insights Section Header */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 mb-6">
+          <div className="flex items-center gap-4">
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: '#616771' }}
+            >
+              <svg 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="#E9EBEE" 
+                strokeWidth="2"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" 
+                />
+              </svg>
+            </div>
+            
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: '#616771' }}>
+                Insights
+              </h2>
+              <p className="text-base sm:text-lg" style={{ color: '#90949C' }}>
+                Analytics & Fraud Detection Metrics
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Analytics Section */}
         <div id="insights" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Top Row - Charts */}
