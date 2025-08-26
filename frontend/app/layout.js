@@ -1,8 +1,7 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Nenya - Fraud Detection Globe',
-  description: 'Interactive globe visualization for fraud detection system'
+  title: 'Nenya',
 }
 
 export default function RootLayout({ children }) {

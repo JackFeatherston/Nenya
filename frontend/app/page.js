@@ -149,8 +149,13 @@ const FraudGlobe = () => {
     // Clear previous globe
     d3.select(globeRef.current).selectAll("*").remove();
   
-    const width = 1000;
-    const height = 1000;
+    // Make globe responsive to container size
+    const containerRect = globeRef.current.getBoundingClientRect();
+    const containerWidth = containerRect.width || 800;
+    const maxSize = Math.min(containerWidth, 800, window.innerHeight * 0.6);
+    
+    const width = maxSize;
+    const height = maxSize;
     const sensitivity = 75;
   
     // Create SVG
@@ -158,12 +163,15 @@ const FraudGlobe = () => {
       .select(globeRef.current)
       .append('svg')
       .attr('width', width)
-      .attr('height', height);
+      .attr('height', height)
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .style('max-width', '100%')
+      .style('height', 'auto');
   
     // Create projection and path generator
     const projection = d3
       .geoOrthographic()
-      .scale(350)
+      .scale(width * 0.35) // Scale relative to width
       .center([0, 0])
       .rotate([0, -30])
       .translate([width / 2, height / 2]);
@@ -359,34 +367,34 @@ const FraudGlobe = () => {
     }
   
     return (
-      <div className="xl:w-96 w-full">
+      <div className="w-full xl:w-96 xl:flex-shrink-0">
         <div 
-          className="rounded-lg p-6 shadow-xl h-full relative"
+          className="rounded-lg p-4 sm:p-6 shadow-xl h-full relative"
           style={{ backgroundColor: '#F5F5F5', border: '1px solid #D1D5DB' }}
         >
           {/* Close button */}
           <button
             onClick={() => setSelectedTransaction(null)}
-            className="absolute top-4 right-4 transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:opacity-70"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:opacity-70"
             style={{ color: '#90949C' }}
             title="Close transaction details"
           >
             ×
           </button>
   
-          <h2 className="text-xl font-bold mb-4 text-center pr-8" style={{ color: '#374151' }}>
+          <h2 className="text-lg sm:text-xl font-bold mb-4 text-center pr-8" style={{ color: '#374151' }}>
             Transaction Details
           </h2>
           
           <div className="space-y-4">
             {/* Transaction Info */}
             <div 
-              className="rounded-lg p-4 space-y-3"
+              className="rounded-lg p-3 sm:p-4 space-y-3"
               style={{ backgroundColor: '#E5E7EB', border: '1px solid #D1D5DB' }}
             >
               <div className="flex justify-between">
                 <span style={{ color: '#374151' }}>Transaction ID:</span>
-                <span className="font-mono text-sm text-right" style={{ color: '#374151' }}>
+                <span className="font-mono text-xs sm:text-sm text-right" style={{ color: '#374151' }}>
                   {selectedTransaction.transactionId}
                 </span>
               </div>
@@ -523,7 +531,7 @@ const FraudGlobe = () => {
     };
   
     const getFilterButtonStyle = (filterType) => {
-      const baseStyle = "px-4 py-2 rounded-lg transition-colors text-sm font-medium";
+      const baseStyle = "px-3 py-2 rounded-lg transition-colors text-sm font-medium";
       if (transactionFilter === filterType) {
         switch (filterType) {
           case 'fraud':
@@ -538,9 +546,9 @@ const FraudGlobe = () => {
     };
   
     return (
-      <div className="custom-card rounded-lg p-6 shadow-xl">
+      <div className="custom-card rounded-lg p-4 sm:p-6 shadow-xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h2 className="text-xl font-bold" style={{ color: '#616771' }}>Transaction History</h2>
+          <h2 className="text-lg sm:text-xl font-bold" style={{ color: '#616771' }}>Transaction History</h2>
           
           {/* Filter Buttons */}
           <div className="flex gap-2 flex-wrap">
@@ -577,62 +585,62 @@ const FraudGlobe = () => {
                 <thead>
                   <tr className="border-b" style={{ borderColor: '#90949C' }}>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      className="text-left p-2 sm:p-3 cursor-pointer hover:opacity-70 rounded text-xs sm:text-sm"
                       style={{ color: '#616771' }}
                       onClick={() => handleSort('isFraudulent')}
                     >
                       Status 
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      className="text-left p-2 sm:p-3 cursor-pointer hover:opacity-70 rounded text-xs sm:text-sm"
                       style={{ color: '#616771' }}
                       onClick={() => handleSort('transactionId')}
                     >
                       Transaction ID 
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      className="text-left p-2 sm:p-3 cursor-pointer hover:opacity-70 rounded text-xs sm:text-sm"
                       style={{ color: '#616771' }}
                       onClick={() => handleSort('amount')}
                     >
                       Amount {getSortIcon('amount')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      className="text-left p-2 sm:p-3 cursor-pointer hover:opacity-70 rounded text-xs sm:text-sm"
                       style={{ color: '#616771' }}
                       onClick={() => handleSort('merchantName')}
                     >
                       Merchant {getSortIcon('merchantName')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      className="text-left p-2 sm:p-3 cursor-pointer hover:opacity-70 rounded text-xs sm:text-sm hidden md:table-cell"
                       style={{ color: '#616771' }}
                       onClick={() => handleSort('merchantCategory')}
                     >
                       Category {getSortIcon('merchantCategory')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      className="text-left p-2 sm:p-3 cursor-pointer hover:opacity-70 rounded text-xs sm:text-sm hidden lg:table-cell"
                       style={{ color: '#616771' }}
                       onClick={() => handleSort('timestamp')}
                     >
                       Date {getSortIcon('timestamp')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      className="text-left p-2 sm:p-3 cursor-pointer hover:opacity-70 rounded text-xs sm:text-sm hidden lg:table-cell"
                       style={{ color: '#616771' }}
                       onClick={() => handleSort('locationCity')}
                     >
                       Location {getSortIcon('locationCity')}
                     </th>
                     <th 
-                      className="text-left p-3 cursor-pointer hover:opacity-70 rounded"
+                      className="text-left p-2 sm:p-3 cursor-pointer hover:opacity-70 rounded text-xs sm:text-sm"
                       style={{ color: '#616771' }}
                       onClick={() => handleSort('riskScore')}
                     >
-                      Risk Score {getSortIcon('riskScore')}
+                      Risk {getSortIcon('riskScore')}
                     </th>
-                    <th className="text-left p-3" style={{ color: '#616771' }}>Actions</th>
+                    <th className="text-left p-2 sm:p-3 text-xs sm:text-sm" style={{ color: '#616771' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -642,36 +650,36 @@ const FraudGlobe = () => {
                       className="border-b hover:opacity-80 transition-colors"
                       style={{ borderColor: '#90949C' }}
                     >
-                      <td className="p-3">
+                      <td className="p-2 sm:p-3">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                           transaction.isFraudulent 
                             ? 'bg-red-900 text-red-300 border border-red-500' 
                             : 'bg-green-900 text-green-300 border border-green-500'
                         }`}>
-                          {transaction.isFraudulent ? 'Fraudulent' : 'Legitimate'}
+                          {transaction.isFraudulent ? 'Fraud' : 'Legit'}
                         </span>
                       </td>
-                      <td className="p-3 font-mono text-xs" style={{ color: '#616771' }}>
+                      <td className="p-2 sm:p-3 font-mono text-xs" style={{ color: '#616771' }}>
                         {transaction.transactionId.slice(-8)}...
                       </td>
-                      <td className="p-3 font-semibold">
+                      <td className="p-2 sm:p-3 font-semibold">
                         <span className={transaction.isFraudulent ? 'text-red-400' : 'text-green-400'}>
                           {formatAmount(transaction.amount)}
                         </span>
                       </td>
-                      <td className="p-3 max-w-32 truncate" style={{ color: '#616771' }} title={transaction.merchantName}>
+                      <td className="p-2 sm:p-3 max-w-32 truncate text-xs sm:text-sm" style={{ color: '#616771' }} title={transaction.merchantName}>
                         {transaction.merchantName}
                       </td>
-                      <td className="p-3 text-xs" style={{ color: '#90949C' }}>
+                      <td className="p-2 sm:p-3 text-xs hidden md:table-cell" style={{ color: '#90949C' }}>
                         {transaction.merchantCategory}
                       </td>
-                      <td className="p-3 text-xs" style={{ color: '#90949C' }}>
+                      <td className="p-2 sm:p-3 text-xs hidden lg:table-cell" style={{ color: '#90949C' }}>
                         {formatDate(transaction.timestamp)}
                       </td>
-                      <td className="p-3 text-xs" style={{ color: '#90949C' }}>
+                      <td className="p-2 sm:p-3 text-xs hidden lg:table-cell" style={{ color: '#90949C' }}>
                         {transaction.locationCity}, {transaction.locationCountry}
                       </td>
-                      <td className="p-3">
+                      <td className="p-2 sm:p-3">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
                           parseFloat(transaction.riskScore || 0) > 0.7 
                             ? 'bg-red-900 text-red-300' 
@@ -682,7 +690,7 @@ const FraudGlobe = () => {
                           {transaction.riskScore ? (parseFloat(transaction.riskScore) * 100).toFixed(0) + '%' : 'N/A'}
                         </span>
                       </td>
-                      <td className="p-3">
+                      <td className="p-2 sm:p-3">
                         <button
                           onClick={() => setSelectedTransaction(transaction)}
                           className="custom-button-primary px-2 py-1 rounded text-xs transition-colors"
@@ -698,15 +706,15 @@ const FraudGlobe = () => {
   
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-between items-center mt-6">
-                <div className="text-sm" style={{ color: '#90949C' }}>
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                <div className="text-xs sm:text-sm" style={{ color: '#90949C' }}>
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredTransactions.length)} of {filteredTransactions.length} transactions
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1 sm:gap-2">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 custom-card hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                    className="px-2 sm:px-3 py-2 custom-card hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed rounded text-xs sm:text-sm transition-colors"
                     style={{ color: '#616771' }}
                   >
                     Previous
@@ -720,7 +728,7 @@ const FraudGlobe = () => {
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page)}
-                            className={`px-3 py-2 text-sm rounded transition-colors ${
+                            className={`px-2 sm:px-3 py-2 text-xs sm:text-sm rounded transition-colors ${
                               currentPage === page 
                                 ? 'custom-button-primary' 
                                 : 'custom-card hover:opacity-80'
@@ -731,7 +739,7 @@ const FraudGlobe = () => {
                           </button>
                         );
                       } else if ((page === currentPage - 2 && page > 1) || (page === currentPage + 2 && page < totalPages)) {
-                        return <span key={page} className="px-2 py-2" style={{ color: '#90949C' }}>...</span>;
+                        return <span key={page} className="px-2 py-2 text-xs sm:text-sm" style={{ color: '#90949C' }}>...</span>;
                       }
                       return null;
                     })}
@@ -740,7 +748,7 @@ const FraudGlobe = () => {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 custom-card hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                    className="px-2 sm:px-3 py-2 custom-card hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed rounded text-xs sm:text-sm transition-colors"
                     style={{ color: '#616771' }}
                   >
                     Next
@@ -841,154 +849,157 @@ const FraudGlobe = () => {
     <div id="dashboard" className="min-h-screen" style={{ backgroundColor: '#E9EBEE', color: '#616771' }}>
       <Navbar />
       
-      {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex items-center gap-4 mb-8">
-          <div 
-            className="w-12 h-12 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: '#616771' }}
-          >
-            <div className="relative">
-              <div 
-                className="w-8 h-8 rounded-full border-2"
-                style={{ borderColor: '#E9EBEE' }}
-              />
-              <div 
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3"
-                style={{
-                  background: '#E9EBEE',
-                  clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)'
-                }}
-              />
+      {/* Main content wrapper with proper spacing */}
+      <div className="ml-16 lg:ml-64 transition-all duration-300 ease-in-out">
+        {/* Header */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center gap-4 mb-8">
+            <div 
+              className="w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: '#616771' }}
+            >
+              <div className="relative">
+                <div 
+                  className="w-8 h-8 rounded-full border-2"
+                  style={{ borderColor: '#E9EBEE' }}
+                />
+                <div 
+                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3"
+                  style={{
+                    background: '#E9EBEE',
+                    clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)'
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* Title Text */}
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#616771' }}>
+                Nenya
+              </h1>
+              <p className="text-base sm:text-lg" style={{ color: '#90949C' }}>
+                Fraud Detection Engine
+              </p>
             </div>
           </div>
           
-          {/* Title Text */}
-          <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#616771' }}>
-              Nenya
-            </h1>
-            <p className="text-lg" style={{ color: '#90949C' }}>
-              Fraud Detection Engine
-            </p>
+          {/* Data Controls */}
+          <div className="flex gap-4 mb-6">
+            {/* Generate Button */}
+            <button
+              onClick={() => generateData(1000)}
+              disabled={isGenerating || isClearing}
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded disabled:opacity-50 disabled:cursor-not-allowed custom-card hover:opacity-80 transition-colors flex items-center justify-center"
+              title="Generate 1000 Transactions"
+            >
+              {isGenerating ? (
+                <div 
+                  className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-t-transparent"
+                  style={{ borderColor: '#616771' }}
+                ></div>
+              ) : (
+                <svg 
+                  width="16" 
+                  height="16" 
+                  className="sm:w-5 sm:h-5"
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="#616771" 
+                  strokeWidth="2"
+                >
+                  <path d="M16 3h5v5"/>
+                  <path d="M4 20L21 3"/>
+                  <path d="M21 16v5h-5"/>
+                  <path d="M15 15l6 6"/>
+                  <path d="M4 4l5 5"/>
+                </svg>
+              )}
+            </button>
+            
+            {/* Clear Button */}
+            <button
+              onClick={clearData}
+              disabled={isGenerating || isClearing}
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded disabled:opacity-50 disabled:cursor-not-allowed custom-card hover:opacity-80 transition-colors flex items-center justify-center"
+              title="Clear All Data"
+            >
+              {isClearing ? (
+                <div 
+                  className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-t-transparent"
+                  style={{ borderColor: '#616771' }}
+                ></div>
+              ) : (
+                <svg 
+                  width="16" 
+                  height="16" 
+                  className="sm:w-5 sm:h-5"
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="#616771" 
+                  strokeWidth="2"
+                >
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              )}
+            </button>
           </div>
         </div>
-        
-        {/* Data Controls */}
-        <div className="flex gap-4 mb-6">
-          {/* Generate Button */}
-          <button
-            onClick={() => generateData(1000)}
-            disabled={isGenerating || isClearing}
-            className="w-12 h-12 rounded disabled:opacity-50 disabled:cursor-not-allowed custom-card hover:opacity-80 transition-colors flex items-center justify-center"
-            title="Generate 1000 Transactions"
-          >
-            {isGenerating ? (
-              <div 
-                className="animate-spin rounded-full h-5 w-5 border-2 border-t-transparent"
-                style={{ borderColor: '#616771' }}
-              ></div>
-            ) : (
-              <svg 
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="#616771" 
-                strokeWidth="2"
-              >
-                <path d="M16 3h5v5"/>
-                <path d="M4 20L21 3"/>
-                <path d="M21 16v5h-5"/>
-                <path d="M15 15l6 6"/>
-                <path d="M4 4l5 5"/>
-              </svg>
-            )}
-          </button>
-          
-          {/* Clear Button */}
-          <button
-            onClick={clearData}
-            disabled={isGenerating || isClearing}
-            className="w-12 h-12 rounded disabled:opacity-50 disabled:cursor-not-allowed custom-card hover:opacity-80 transition-colors flex items-center justify-center"
-            title="Clear All Data"
-          >
-            {isClearing ? (
-              <div 
-                className="animate-spin rounded-full h-5 w-5 border-2 border-t-transparent"
-                style={{ borderColor: '#616771' }}
-              ></div>
-            ) : (
-              <svg 
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="#616771" 
-                strokeWidth="2"
-              >
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-            )}
-          </button>
-        </div>
-      </div>
 
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col xl:flex-row gap-8">
-          {/* Globe Container */}
-          <div className="flex-1">
-            <div className="fraud-globe-container p-6">
-              <div className="flex justify-center">
-                <div 
-                  className="border-2 rounded-lg p-4"
-                  style={{ borderColor: '#90949C', backgroundColor: '#F8F9FA' }}
-                >
-                  <div ref={globeRef} className="cursor-move"></div>
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
+            {/* Globe Container */}
+            <div className="flex-1 min-w-0">
+              <div className="fraud-globe-container p-4 sm:p-6">
+                <div className="flex justify-center">
+                  <div 
+                    className="border-2 rounded-lg p-2 sm:p-4 max-w-full overflow-hidden"
+                    style={{ borderColor: '#90949C', backgroundColor: '#F8F9FA' }}
+                  >
+                    <div ref={globeRef} className="cursor-move"></div>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Controls */}
-              <div className="mt-6 text-center">
-                <div className="inline-flex items-center gap-4 text-sm flex-wrap justify-center" style={{ color: '#90949C' }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span>Fraud Transaction (Accurate Location)</span>
+                
+                {/* Controls */}
+                <div className="mt-6 text-center">
+                  <div className="inline-flex items-center gap-4 text-xs sm:text-sm flex-wrap justify-center" style={{ color: '#90949C' }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span>Fraud Transaction (Accurate Location)</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Transaction Details Panel */}
+            <TransactionDetailsPanel/>
           </div>
+        </div>
 
-          {/* Transaction Details Panel */}
-          <TransactionDetailsPanel/>
+        {/* Transaction Table */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+          <TransactionTable />
+        </div>
+
+        {/* Analytics Section */}
+        <div id="insights" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Top Row - Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <FraudVsLegitChart transactions={allTransactions} />
+            <MerchantFraudChart transactions={allTransactions} />
+            <FraudulentReasonsChart transactions={allTransactions} />
+          </div>
+          
+          {/* Analytics Cards */}
+          <AnalyticsCards transactions={allTransactions} />
         </div>
       </div>
-
-      {/* Transaction Table */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        <TransactionTable />
-      </div>
-
-      {/* Analytics Section */}
-      <div id="insights" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Top Row - Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <FraudVsLegitChart transactions={allTransactions} />
-          <MerchantFraudChart transactions={allTransactions} />
-          <FraudulentReasonsChart transactions={allTransactions} />
-        </div>
-        
-        {/* Analytics Cards */}
-        <AnalyticsCards transactions={allTransactions} />
-      </div>
-
     </div>
   );
 };
