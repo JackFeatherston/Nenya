@@ -330,7 +330,7 @@ export const AnalyticsCards = ({ transactions }) => {
         
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-cyan-400 mb-2">{uniqueUsers}</div>
-          <div className="text-sm" style={{ color: '#90949C' }}>Unique Users</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Transaction Sample Size</div>
         </div>
       </div>
     </div>

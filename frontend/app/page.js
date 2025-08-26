@@ -163,11 +163,11 @@ const FraudGlobe = () => {
     // Create projection and path generator
     const projection = d3
       .geoOrthographic()
-      .scale(250)
+      .scale(350)
       .center([0, 0])
       .rotate([0, -30])
       .translate([width / 2, height / 2]);
-  
+      
     const path = d3.geoPath().projection(projection);
   
     // Create globe sphere background
@@ -176,7 +176,7 @@ const FraudGlobe = () => {
       .datum({ type: 'Sphere' })
       .attr('class', 'sphere')
       .attr('d', path)
-      .style('fill', '#4267B3') // Primary blue ocean
+      .style('fill', '#87CEEB') // Light blue ocean
       .style('stroke', '#616771')
       .style('stroke-width', '2px');
   
@@ -202,7 +202,7 @@ const FraudGlobe = () => {
         .append('path')
         .attr('class', 'land')
         .attr('d', path)
-        .style('fill', '#90949C') // Medium gray for land
+        .style('fill', '#90EE90') // Light green for land
         .style('stroke', 'none');
   
       // Draw country boundaries
@@ -324,7 +324,8 @@ const FraudGlobe = () => {
     return (
       <div className="xl:w-96 w-full">
         <div 
-          className="rounded-lg p-6 shadow-xl h-full relative custom-card"
+          className="rounded-lg p-6 shadow-xl h-full relative"
+          style={{ backgroundColor: '#F5F5F5', border: '1px solid #D1D5DB' }}
         >
           {/* Close button */}
           <button
@@ -336,114 +337,108 @@ const FraudGlobe = () => {
             ×
           </button>
   
-          <h2 className="text-xl font-bold mb-4 text-center pr-8" style={{ color: '#616771' }}>
+          <h2 className="text-xl font-bold mb-4 text-center pr-8" style={{ color: '#374151' }}>
             Transaction Details
           </h2>
           
           <div className="space-y-4">
             {/* Transaction Info */}
             <div 
-              className="rounded-lg p-4 space-y-3 custom-card-dark"
+              className="rounded-lg p-4 space-y-3"
+              style={{ backgroundColor: '#E5E7EB', border: '1px solid #D1D5DB' }}
             >
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Transaction ID:</span>
-                <span className="font-mono text-sm text-right" style={{ color: '#E9EBEE' }}>
+                <span style={{ color: '#374151' }}>Transaction ID:</span>
+                <span className="font-mono text-sm text-right" style={{ color: '#374151' }}>
                   {selectedTransaction.transactionId}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Amount:</span>
+                <span style={{ color: '#374151' }}>Amount:</span>
                 <span className="font-bold text-red-400 text-lg">
                   {formatAmount(selectedTransaction.amount)}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Date:</span>
-                <span style={{ color: '#E9EBEE' }}>{formatDate(selectedTransaction.timestamp)}</span>
+                <span style={{ color: '#374151' }}>Date:</span>
+                <span style={{ color: '#374151' }}>{formatDate(selectedTransaction.timestamp)}</span>
               </div>
               
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Merchant:</span>
-                <span className="text-right max-w-[60%] truncate" style={{ color: '#E9EBEE' }}>
+                <span style={{ color: '#374151' }}>Merchant:</span>
+                <span className="text-right max-w-[60%] truncate" style={{ color: '#374151' }}>
                   {selectedTransaction.merchantName}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Category:</span>
-                <span style={{ color: '#E9EBEE' }}>{selectedTransaction.merchantCategory}</span>
+                <span style={{ color: '#374151' }}>Category:</span>
+                <span className='text-right' style={{ color: '#374151' }}>{selectedTransaction.merchantCategory}</span>
               </div>
               
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Payment:</span>
-                <span style={{ color: '#E9EBEE' }}>{selectedTransaction.paymentMethod}</span>
+                <span style={{ color: '#374151' }}>Payment:</span>
+                <span style={{ color: '#374151' }}>{selectedTransaction.paymentMethod}</span>
               </div>
               
               {selectedTransaction.cardLastFour && (
                 <div className="flex justify-between">
-                  <span style={{ color: '#90949C' }}>Card:</span>
-                  <span className="font-mono" style={{ color: '#E9EBEE' }}>
+                  <span style={{ color: '#374151' }}>Card:</span>
+                  <span className="font-mono" style={{ color: '#374151' }}>
                     ****{selectedTransaction.cardLastFour}
                   </span>
                 </div>
               )}
               
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Location:</span>
-                <span className="text-right text-sm max-w-[60%]" style={{ color: '#E9EBEE' }}>
+                <span style={{ color: '#374151' }}>Location:</span>
+                <span className="text-right text-sm max-w-[60%]" style={{ color: '#374151' }}>
                   {selectedTransaction.locationCity}, {selectedTransaction.locationCountry}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Coordinates:</span>
-                <span className="font-mono text-xs text-right" style={{ color: '#E9EBEE' }}>
+                <span style={{ color: '#374151' }}>Coordinates:</span>
+                <span className="font-mono text-xs text-right" style={{ color: '#374151' }}>
                   {selectedTransaction.lat.toFixed(4)}, {selectedTransaction.lng.toFixed(4)}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span style={{ color: '#90949C' }}>Risk Score:</span>
+                <span style={{ color: '#374151' }}>Risk Score:</span>
                 <span className="font-bold text-orange-400">
                   {selectedTransaction.riskScore ? (selectedTransaction.riskScore * 100).toFixed(1) + '%' : 'N/A'}
                 </span>
               </div>
             </div>
   
-            {/* Fraud Status Badge */}
-            <div className="text-center">
-              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-red-900 text-red-300 border border-red-500">
-                🚨 FRAUDULENT TRANSACTION
-              </span>
-            </div>
-  
             {/* Fraud Reason */}
             {selectedTransaction.fraudReason && (
-              <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-3">
+              <div className="bg-red-900 text-red-300 border border-red-500 rounded-lg p-3">
                 <h4 className="text-red-300 font-semibold mb-2">Fraud Reason:</h4>
                 <p className="text-red-200 text-sm">{selectedTransaction.fraudReason}</p>
               </div>
             )}
   
             {/* User Info */}
-            <div className="custom-card-dark rounded-lg p-3">
-              <h4 className="font-semibold mb-2" style={{ color: '#90949C' }}>User Information:</h4>
+            <div className="rounded-lg p-3" style={{ backgroundColor: '#E5E7EB', border: '1px solid #D1D5DB' }}>
+              <h4 className="font-semibold mb-2" style={{ color: '#374151' }}>User Information:</h4>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span style={{ color: '#90949C' }}>User ID:</span>
-                  <span className="font-mono" style={{ color: '#E9EBEE' }}>
+                  <span style={{ color: '#374151' }}>User ID:</span>
+                  <span className="font-mono" style={{ color: '#374151' }}>
                     {selectedTransaction.userId}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span style={{ color: '#90949C' }}>Device:</span>
-                  <span style={{ color: '#E9EBEE' }}>{selectedTransaction.deviceType}</span>
+                  <span style={{ color: '#374151' }}>Device:</span>
+                  <span style={{ color: '#374151' }}>{selectedTransaction.deviceType}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span style={{ color: '#90949C' }}>IP Address:</span>
-                  <span className="font-mono text-xs" style={{ color: '#E9EBEE' }}>
+                  <span style={{ color: '#374151' }}>IP Address:</span>
+                  <span className="font-mono text-xs" style={{ color: '#374151' }}>
                     {selectedTransaction.ipAddress}
                   </span>
                 </div>
@@ -806,7 +801,7 @@ const FraudGlobe = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#E9EBEE', color: '#616771' }}>
+    <div id="dashboard" className="min-h-screen" style={{ backgroundColor: '#E9EBEE', color: '#616771' }}>
       <Navbar />
       
       {/* Header */}
@@ -882,7 +877,7 @@ const FraudGlobe = () => {
               <div className="flex justify-center">
                 <div 
                   className="border-2 rounded-lg p-4"
-                  style={{ borderColor: '#90949C', backgroundColor: '#616771' }}
+                  style={{ borderColor: '#90949C', backgroundColor: '#F8F9FA' }}
                 >
                   <div ref={globeRef} className="cursor-move"></div>
                 </div>
