@@ -923,50 +923,6 @@ const FraudGlobe = () => {
         <AnalyticsCards transactions={allTransactions} />
       </div>
 
-      {/* Footer Stats */}
-      <div className="custom-card-dark mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
-            <div>
-              <div className="text-2xl font-bold" style={{ color: '#4267B3' }}>{stats.total}</div>
-              <div style={{ color: '#90949C' }}>Total Transactions</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-red-400">{stats.fraudulent}</div>
-              <div style={{ color: '#90949C' }}>Fraud Transactions</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-400">{stats.legitimate}</div>
-              <div style={{ color: '#90949C' }}>Legitimate Transactions</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-orange-400">
-                {stats.fraudRate ? stats.fraudRate.toFixed(2) + '%' : '0%'}
-              </div>
-              <div style={{ color: '#90949C' }}>Fraud Rate</div>
-            </div>
-          </div>
-          
-          {transactions.length > 0 && (
-            <div className="mt-6 pt-4 border-t" style={{ borderColor: '#90949C' }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
-                <div>
-                  <div className="text-xl font-bold text-yellow-400">
-                    {formatAmount(transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0))}
-                  </div>
-                  <div style={{ color: '#90949C' }}>Total Fraud Amount</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-purple-400">
-                    {(transactions.reduce((sum, t) => sum + parseFloat(t.riskScore || 0), 0) / transactions.length * 100).toFixed(1) + '%'}
-                  </div>
-                  <div style={{ color: '#90949C' }}>Avg Risk Score</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };
