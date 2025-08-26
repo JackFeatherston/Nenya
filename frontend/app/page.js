@@ -806,65 +806,99 @@ const FraudGlobe = () => {
       
       {/* Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex items-center gap-4 mb-8">
+          <div 
+            className="w-12 h-12 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: '#616771' }}
+          >
+            <div className="relative">
+              <div 
+                className="w-8 h-8 rounded-full border-2"
+                style={{ borderColor: '#E9EBEE' }}
+              />
+              <div 
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3"
+                style={{
+                  background: '#E9EBEE',
+                  clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)'
+                }}
+              />
+            </div>
+          </div>
+          
+          {/* Title Text */}
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: '#616771' }}>
+              Nenya
+            </h1>
+            <p className="text-lg" style={{ color: '#90949C' }}>
+              Fraud Detection Engine
+            </p>
+          </div>
+        </div>
         
         {/* Data Controls */}
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex gap-4 mb-6">
+          {/* Generate Button */}
           <button
             onClick={() => generateData(1000)}
             disabled={isGenerating || isClearing}
-            className="custom-button-primary disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+            className="w-12 h-12 rounded disabled:opacity-50 disabled:cursor-not-allowed custom-card hover:opacity-80 transition-colors flex items-center justify-center"
+            title="Generate 1000 Transactions"
           >
             {isGenerating ? (
-              <>
-                <div 
-                  className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"
-                ></div>
-                Generating...
-              </>
+              <div 
+                className="animate-spin rounded-full h-5 w-5 border-2 border-t-transparent"
+                style={{ borderColor: '#616771' }}
+              ></div>
             ) : (
-              <>
-                Generate 1000 Transactions
-              </>
+              <svg 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="#616771" 
+                strokeWidth="2"
+              >
+                <path d="M16 3h5v5"/>
+                <path d="M4 20L21 3"/>
+                <path d="M21 16v5h-5"/>
+                <path d="M15 15l6 6"/>
+                <path d="M4 4l5 5"/>
+              </svg>
+            )}
+          </button>
+          
+          {/* Clear Button */}
+          <button
+            onClick={clearData}
+            disabled={isGenerating || isClearing}
+            className="w-12 h-12 rounded disabled:opacity-50 disabled:cursor-not-allowed custom-card hover:opacity-80 transition-colors flex items-center justify-center"
+            title="Clear All Data"
+          >
+            {isClearing ? (
+              <div 
+                className="animate-spin rounded-full h-5 w-5 border-2 border-t-transparent"
+                style={{ borderColor: '#616771' }}
+              ></div>
+            ) : (
+              <svg 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="#616771" 
+                strokeWidth="2"
+              >
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
             )}
           </button>
         </div>
-          
-        <button
-          onClick={clearData}
-          disabled={isGenerating || isClearing}
-          className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-        >
-          {isClearing ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-              Clearing...
-            </>
-          ) : (
-            <>
-              <span>🗑️</span>
-              Clear All Data
-            </>
-          )}
-        </button>
-
-        
-        {/* Status Messages */}
-        {error && (
-          <div className="bg-red-900/50 border border-red-500 rounded-lg p-3 mt-4 mx-auto max-w-md">
-            <p className="text-red-200 text-sm text-center">{error}</p>
-          </div>
-        )}
-        
-        {(isGenerating || isClearing) && (
-          <div 
-            className="border rounded-lg p-3 mt-4 mx-auto max-w-md"
-            style={{ backgroundColor: '#4267B3', borderColor: '#616771' }}
-          >
-            <p className="text-sm text-center" style={{ color: '#E9EBEE' }}>
-              {isGenerating ? 'Generating synthetic transaction data with accurate locations...' : 'Clearing transaction data...'}
-            </p>
-          </div>
-        )}
       </div>
 
 
