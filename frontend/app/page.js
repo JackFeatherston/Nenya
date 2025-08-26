@@ -218,42 +218,68 @@ const FraudGlobe = () => {
     } 
   
     const dots = svg
-      .selectAll('.fraud-dot')
-      .data(transactions)
-      .enter()
-      .append('circle')
-      .attr('class', 'fraud-dot')
-      .attr('r', d => Math.max(3, Math.min(8, Math.log(parseFloat(d.amount)))))
-      .attr('cx', d => {
-        const coords = projection([d.lng, d.lat]);
-        return coords ? coords[0] : -1000;
-      })
-      .attr('cy', d => {
-        const coords = projection([d.lng, d.lat]);
-        return coords ? coords[1] : -1000;
-      })
-      .style('fill', '#ef4444')
-      .style('stroke', '#dc2626')
-      .style('stroke-width', '2px')
-      .style('cursor', 'pointer')
-      .style('filter', 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))')
-      .on('click', function(event, d) {
-        // Prevent event bubbling to avoid triggering drag
-        event.stopPropagation();
-        setSelectedTransaction(d);
-      })
-      .on('mouseover', function(event, d) {
-        d3.select(this)
-          .transition()
-          .duration(200)
-          .attr('r', Math.max(5, Math.min(12, Math.log(parseFloat(d.amount)) + 2)));
-      })
-      .on('mouseout', function(event, d) {
-        d3.select(this)
-          .transition()
-          .duration(200)
-          .attr('r', Math.max(3, Math.min(8, Math.log(parseFloat(d.amount)))));
-      });
+        .selectAll('.fraud-dot')
+        .data(transactions)
+        .enter()
+        .append('circle')
+        .attr('class', 'fraud-dot')
+        .attr('r', d => Math.max(3, Math.min(8, Math.log(parseFloat(d.amount)))))
+        .attr('cx', d => {
+          const coords = projection([d.lng, d.lat]);
+          return coords ? coords[0] : -1000;
+        })
+        .attr('cy', d => {
+          const coords = projection([d.lng, d.lat]);
+          return coords ? coords[1] : -1000;
+        })
+        .style('fill', '#ef4444')
+        .style('stroke', '#dc2626')
+        .style('stroke-width', '2px')
+        .style('cursor', 'pointer')
+        .style('filter', 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.8))')
+        .style('pointer-events', 'all') // Ensure pointer events are enabled
+        .each(function(d) {
+          // Store original radius for each dot
+          d3.select(this).datum().originalRadius = Math.max(3, Math.min(8, Math.log(parseFloat(d.amount))));
+        })
+        .on('click', function(event, d) {
+          // Prevent event bubbling to avoid triggering drag
+          event.stopPropagation();
+          event.preventDefault();
+          setSelectedTransaction(d);
+        })
+        .on('mouseenter', function(event, d) {
+          // Use mouseenter instead of mouseover to prevent rapid firing
+          const currentDot = d3.select(this);
+          const originalRadius = d.originalRadius || Math.max(3, Math.min(8, Math.log(parseFloat(d.amount))));
+          
+          // Stop any existing transitions
+          currentDot.interrupt();
+          
+          // Scale up smoothly
+          currentDot
+            .transition()
+            .duration(150)
+            .ease(d3.easeQuadOut)
+            .attr('r', originalRadius * 1.5)
+            .style('stroke-width', '3px');
+        })
+        .on('mouseleave', function(event, d) {
+          // Use mouseleave instead of mouseout to prevent rapid firing
+          const currentDot = d3.select(this);
+          const originalRadius = d.originalRadius || Math.max(3, Math.min(8, Math.log(parseFloat(d.amount))));
+          
+          // Stop any existing transitions
+          currentDot.interrupt();
+          
+          // Scale back down smoothly
+          currentDot
+            .transition()
+            .duration(150)
+            .ease(d3.easeQuadOut)
+            .attr('r', originalRadius)
+            .style('stroke-width', '2px');
+        });
   
     // Add pulsing animation to dots
     dots
@@ -287,6 +313,17 @@ const FraudGlobe = () => {
           // Hide dots on the back of the globe using actual coordinates
           const distance = d3.geoDistance([d.lng, d.lat], projection.invert([width/2, height/2]));
           return distance > Math.PI/2 ? 0 : 1;
+        })
+        .each(function(d) {
+          const currentRadius = d3.select(this).attr('r');
+          const originalRadius = Math.max(3, Math.min(8, Math.log(parseFloat(d.amount))));
+          
+          // Only update if we're not in a hover state (radius hasn't been scaled)
+          if (Math.abs(currentRadius - originalRadius) < 0.1) {
+            d3.select(this).attr('r', originalRadius);
+          }
+          
+          d.originalRadius = originalRadius;
         });
     };
   
