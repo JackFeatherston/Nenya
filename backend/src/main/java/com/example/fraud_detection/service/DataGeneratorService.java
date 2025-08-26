@@ -1,18 +1,24 @@
-package com.example.fraud_detection.service;
+# Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/fraud_detection
+spring.datasource.username=postgres
+spring.datasource.password=password
+spring.datasource.driver-class-name=org.postgresql.Driver
 
-import com.example.fraud_detection.model.Transaction;
-import com.example.fraud_detection.repository.TransactionRepository;
-import com.github.javafaker.Faker;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+# JPA/Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+# Server Configuration
+server.port=8080
+
+# CORS Configuration
+spring.web.cors.allowed-origins=http://localhost:3000
+spring.web.cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS
+spring.web.cors.allowed-headers=*
+
+# Fraud Detection API Configuration
+fraud.detection.api.url=http://localhost:8000
 
 @Service
 public class DataGeneratorService {
@@ -20,8 +26,13 @@ public class DataGeneratorService {
     @Autowired
     private TransactionRepository transactionRepository;
     
+    @Autowired
+    private FraudDetectionService fraudDetectionService;
+    
     private final Faker faker = new Faker();
     private final Random random = new Random();
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     private final String[] merchantCategories = {
         "Grocery Store", "Gas Station", "Restaurant", "Retail", "Online Shopping",
@@ -35,11 +46,6 @@ public class DataGeneratorService {
     
     private final String[] deviceTypes = {
         "Mobile", "Desktop", "Tablet", "Smart TV", "Wearable"
-    };
-    
-    private final String[] fraudReasons = {
-        "Unusual spending pattern", "High-risk location", "Multiple rapid transactions",
-        "Suspicious device", "Compromised card", "Identity theft", "Account takeover"
     };
     
     // Real world cities with accurate coordinates
@@ -151,65 +157,55 @@ public class DataGeneratorService {
             transactionRepository.deleteAll();
             transactionRepository.flush();
             
-            // Generate exactly the requested number of transactions
-            // 95% legitimate, 5% fraudulent
-            int fraudulentCount = (int) Math.round(totalTransactions * 0.05);
-            int legitimateCount = totalTransactions - fraudulentCount;
-            
             List<Transaction> allTransactions = new ArrayList<>();
             
-            // Generate legitimate transactions
-            for (int i = 0; i < legitimateCount; i++) {
-                allTransactions.add(generateLegitimateTransaction());
+            // Generate transactions with realistic patterns (no hardcoded fraud logic)
+            for (int i = 0; i < totalTransactions; i++) {
+                Transaction transaction = generateRealisticTransaction();
+                allTransactions.add(transaction);
             }
             
-            // Generate fraudulent transactions
-            for (int i = 0; i < fraudulentCount; i++) {
-                allTransactions.add(generateFraudulentTransaction());
-            }
-            
-            // Shuffle the list to mix legitimate and fraudulent transactions
-            Collections.shuffle(allTransactions);
-            
-            // Save all transactions in batches to avoid memory issues
+            // Save all transactions in batches
             int batchSize = 500;
             for (int i = 0; i < allTransactions.size(); i += batchSize) {
                 int endIndex = Math.min(i + batchSize, allTransactions.size());
                 List<Transaction> batch = allTransactions.subList(i, endIndex);
                 transactionRepository.saveAll(batch);
-                transactionRepository.flush(); // Ensure each batch is committed
+                transactionRepository.flush();
             }
+            
+            // Now train the ML model with generated data if Python service is available
+            try {
+                trainMLModel();
+            } catch (Exception e) {
+                System.err.println("Warning: Could not train ML model - " + e.getMessage());
+                System.err.println("Falling back to rule-based fraud detection");
+            }
+            
+            // Update transactions with ML predictions
+            updateTransactionsWithMLPredictions();
             
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate synthetic data: " + e.getMessage(), e);
         }
     }
     
-    private CityLocation getRandomCity() {
-        return worldCities.get(random.nextInt(worldCities.size()));
-    }
-    
-    private Transaction generateLegitimateTransaction() {
+    private Transaction generateRealisticTransaction() {
         String transactionId = "TXN-" + faker.number().digits(12);
         String userId = "USER-" + faker.number().digits(8);
         String merchantName = faker.company().name();
         String merchantCategory = merchantCategories[random.nextInt(merchantCategories.length)];
         
-        // Legitimate transactions: reasonable amounts (1 to 500)
-        double randomAmount = 1.0 + (random.nextDouble() * 499.0); // 1.0 to 500.0
-        BigDecimal amount = BigDecimal.valueOf(randomAmount).setScale(2, RoundingMode.HALF_UP);
+        // Generate more realistic amounts based on merchant category
+        BigDecimal amount = generateRealisticAmount(merchantCategory);
         String currency = "USD";
         
-        LocalDateTime timestamp = faker.date()
-            .past(30, TimeUnit.DAYS)
-            .toInstant()
-            .atZone(ZoneId.systemDefault())
-            .toLocalDateTime();
+        // Generate realistic timestamps (more transactions during business hours)
+        LocalDateTime timestamp = generateRealisticTimestamp();
         
         String paymentMethod = paymentMethods[random.nextInt(paymentMethods.length)];
         String cardLastFour = faker.number().digits(4);
         
-        // Get a real city location for legitimate transactions
         CityLocation cityLocation = getRandomCity();
         String locationCity = cityLocation.city;
         String locationCountry = cityLocation.country;
@@ -217,9 +213,9 @@ public class DataGeneratorService {
         String ipAddress = faker.internet().ipV4Address();
         String deviceType = deviceTypes[random.nextInt(deviceTypes.length)];
         
-        // Low risk score for legitimate transactions (0.0 to 0.3)
-        double randomRisk = random.nextDouble() * 0.3;
-        BigDecimal riskScore = BigDecimal.valueOf(randomRisk).setScale(2, RoundingMode.HALF_UP);
+        // Don't set fraud status yet - will be determined by ML model
+        // Set default risk score that will be updated by ML model
+        BigDecimal riskScore = BigDecimal.valueOf(0.5).setScale(2, RoundingMode.HALF_UP);
         
         return new Transaction(
             transactionId, userId, merchantName, merchantCategory, amount, currency,
@@ -229,75 +225,207 @@ public class DataGeneratorService {
         );
     }
     
-    private Transaction generateFraudulentTransaction() {
-        String transactionId = "TXN-" + faker.number().digits(12);
-        String userId = "USER-" + faker.number().digits(8);
-        String merchantName = faker.company().name();
-        String merchantCategory = merchantCategories[random.nextInt(merchantCategories.length)];
+    private BigDecimal generateRealisticAmount(String merchantCategory) {
+        // Generate amounts based on realistic spending patterns for different categories
+        double baseAmount;
+        double variance;
         
-        // Fraudulent transactions: often higher amounts or suspicious patterns
-        BigDecimal amount;
-        if (random.nextDouble() < 0.6) {
-            // High amount transactions (1000 to 10000)
-            double randomAmount = 1000.0 + (random.nextDouble() * 9000.0);
-            amount = BigDecimal.valueOf(randomAmount).setScale(2, RoundingMode.HALF_UP);
-        } else {
-            // Small amount transactions for testing stolen cards (0.01 to 5.0)
-            double randomAmount = 0.01 + (random.nextDouble() * 4.99);
-            amount = BigDecimal.valueOf(randomAmount).setScale(2, RoundingMode.HALF_UP);
+        switch (merchantCategory) {
+            case "Coffee Shop":
+                baseAmount = 8.50;
+                variance = 5.0;
+                break;
+            case "Fast Food":
+                baseAmount = 15.0;
+                variance = 8.0;
+                break;
+            case "Restaurant":
+                baseAmount = 45.0;
+                variance = 25.0;
+                break;
+            case "Grocery Store":
+                baseAmount = 85.0;
+                variance = 40.0;
+                break;
+            case "Gas Station":
+                baseAmount = 55.0;
+                variance = 20.0;
+                break;
+            case "Electronics":
+                baseAmount = 350.0;
+                variance = 400.0;
+                break;
+            case "Online Shopping":
+                baseAmount = 125.0;
+                variance = 200.0;
+                break;
+            case "Hotel":
+                baseAmount = 220.0;
+                variance = 150.0;
+                break;
+            case "Airline":
+                baseAmount = 450.0;
+                variance = 300.0;
+                break;
+            default:
+                baseAmount = 75.0;
+                variance = 50.0;
         }
         
-        String currency = "USD";
+        // Add some randomness but keep amounts realistic
+        double randomAmount = Math.max(1.0, baseAmount + (random.nextGaussian() * variance));
         
-        LocalDateTime timestamp = faker.date()
+        // Occasionally generate higher amounts for more variety
+        if (random.nextDouble() < 0.1) {
+            randomAmount *= (2 + random.nextDouble() * 3); // 2x to 5x higher
+        }
+        
+        return BigDecimal.valueOf(randomAmount).setScale(2, RoundingMode.HALF_UP);
+    }
+    
+    private LocalDateTime generateRealisticTimestamp() {
+        // Generate timestamps with realistic patterns
+        LocalDateTime baseTime = faker.date()
             .past(30, TimeUnit.DAYS)
             .toInstant()
             .atZone(ZoneId.systemDefault())
             .toLocalDateTime();
         
-        String paymentMethod = paymentMethods[random.nextInt(paymentMethods.length)];
-        String cardLastFour = faker.number().digits(4);
+        // Adjust hour based on realistic shopping patterns
+        int hour;
+        double rand = random.nextDouble();
         
-        // FIXED: Always use real city locations, even for fraudulent transactions
-        // For fraudulent transactions, we might bias towards certain high-risk locations
-        // but they're still real places
-        CityLocation cityLocation;
-        if (random.nextDouble() < 0.3) {
-            // 30% chance to use "high-risk" locations (but still real cities)
-            List<CityLocation> highRiskCities = Arrays.asList(
-                new CityLocation("Las Vegas", "United States", 36.1699, -115.1398),
-                new CityLocation("Miami", "United States", 25.7617, -80.1918),
-                new CityLocation("Dubai", "United Arab Emirates", 25.2048, 55.2708),
-                new CityLocation("Moscow", "Russia", 55.7558, 37.6173),
-                new CityLocation("Istanbul", "Turkey", 41.0082, 28.9784),
-                new CityLocation("Bangkok", "Thailand", 13.7563, 100.5018),
-                new CityLocation("Manila", "Philippines", 14.5995, 120.9842),
-                new CityLocation("Jakarta", "Indonesia", -6.2088, 106.8456)
-            );
-            cityLocation = highRiskCities.get(random.nextInt(highRiskCities.size()));
+        if (rand < 0.4) {
+            // 40% - Business hours (9 AM - 6 PM)
+            hour = 9 + random.nextInt(9);
+        } else if (rand < 0.7) {
+            // 30% - Evening hours (6 PM - 10 PM)
+            hour = 18 + random.nextInt(4);
+        } else if (rand < 0.9) {
+            // 20% - Morning hours (7 AM - 9 AM)
+            hour = 7 + random.nextInt(2);
         } else {
-            // 70% chance to use any random city
-            cityLocation = getRandomCity();
+            // 10% - Night hours (10 PM - 7 AM)
+            hour = random.nextInt(24);
         }
         
-        String locationCity = cityLocation.city;
-        String locationCountry = cityLocation.country;
+        return baseTime.withHour(hour)
+                     .withMinute(random.nextInt(60))
+                     .withSecond(random.nextInt(60));
+    }
+    
+    private CityLocation getRandomCity() {
+        return worldCities.get(random.nextInt(worldCities.size()));
+    }
+    
+    private void trainMLModel() {
+        try {
+            List<Transaction> allTransactions = transactionRepository.findAll();
+            
+            // Create initial training data with rule-based labels for bootstrapping
+            List<TrainingTransaction> trainingData = new ArrayList<>();
+            
+            for (Transaction transaction : allTransactions) {
+                // Use rule-based logic to create initial labels
+                boolean isInitialFraud = determineInitialFraudStatus(transaction);
+                
+                TrainingTransaction trainingTx = new TrainingTransaction();
+                trainingTx.transactionId = transaction.getTransactionId();
+                trainingTx.userId = transaction.getUserId();
+                trainingTx.merchantName = transaction.getMerchantName();
+                trainingTx.merchantCategory = transaction.getMerchantCategory();
+                trainingTx.amount = transaction.getAmount().doubleValue();
+                trainingTx.currency = transaction.getCurrency();
+                trainingTx.timestamp = transaction.getTimestamp().toString();
+                trainingTx.paymentMethod = transaction.getPaymentMethod();
+                trainingTx.cardLastFour = transaction.getCardLastFour();
+                trainingTx.locationCity = transaction.getLocationCity();
+                trainingTx.locationCountry = transaction.getLocationCountry();
+                trainingTx.latitude = transaction.getLatitude().doubleValue();
+                trainingTx.longitude = transaction.getLongitude().doubleValue();
+                trainingTx.ipAddress = transaction.getIpAddress();
+                trainingTx.deviceType = transaction.getDeviceType();
+                trainingTx.isFraudulent = isInitialFraud;
+                
+                trainingData.add(trainingTx);
+            }
+            
+            // Send training request to Python API
+            fraudDetectionService.trainModel(trainingData);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to train ML model: " + e.getMessage(), e);
+        }
+    }
+    
+    private boolean determineInitialFraudStatus(Transaction transaction) {
+        // Rule-based logic to create initial training labels
+        // This creates a more sophisticated fraud pattern than the original hardcoded approach
         
-        String ipAddress = faker.internet().ipV4Address();
-        String deviceType = deviceTypes[random.nextInt(deviceTypes.length)];
+        double amount = transaction.getAmount().doubleValue();
+        int hour = transaction.getTimestamp().getHour();
+        String category = transaction.getMerchantCategory();
+        String paymentMethod = transaction.getPaymentMethod();
         
-        String fraudReason = fraudReasons[random.nextInt(fraudReasons.length)];
+        int riskFactors = 0;
         
-        // High risk score for fraudulent transactions (0.7 to 1.0)
-        double randomRisk = 0.7 + (random.nextDouble() * 0.3); // 0.7 to 1.0
-        BigDecimal riskScore = BigDecimal.valueOf(randomRisk).setScale(2, RoundingMode.HALF_UP);
+        // High amount transactions (but not always fraud)
+        if (amount > 2000) riskFactors += 2;
+        else if (amount > 1000) riskFactors += 1;
         
-        return new Transaction(
-            transactionId, userId, merchantName, merchantCategory, amount, currency,
-            timestamp, paymentMethod, cardLastFour, locationCity, locationCountry,
-            BigDecimal.valueOf(cityLocation.latitude), BigDecimal.valueOf(cityLocation.longitude),
-            ipAddress, deviceType, true, fraudReason, riskScore
-        );
+        // Very small amounts might be card testing
+        if (amount < 5.0) riskFactors += 1;
+        
+        // Unusual hours
+        if (hour < 6 || hour > 23) riskFactors += 1;
+        
+        // High-risk categories
+        if (Arrays.asList("Online Shopping", "Electronics", "Gas Station").contains(category)) {
+            riskFactors += 1;
+        }
+        
+        // High-risk payment methods
+        if (Arrays.asList("PayPal", "Apple Pay", "Google Pay").contains(paymentMethod)) {
+            riskFactors += 1;
+        }
+        
+        // Create realistic fraud rate (around 3-7%)
+        double fraudProbability = Math.min(0.7, riskFactors * 0.15 + 0.02);
+        
+        return random.nextDouble() < fraudProbability;
+    }
+    
+    private void updateTransactionsWithMLPredictions() {
+        try {
+            List<Transaction> allTransactions = transactionRepository.findAll();
+            List<Transaction> updatedTransactions = new ArrayList<>();
+            
+            for (Transaction transaction : allTransactions) {
+                try {
+                    // Get ML prediction
+                    FraudPrediction prediction = fraudDetectionService.predictFraud(transaction);
+                    
+                    // Update transaction with ML results
+                    transaction.setIsFraudulent(prediction.isFraud);
+                    transaction.setRiskScore(BigDecimal.valueOf(prediction.riskScore).setScale(2, RoundingMode.HALF_UP));
+                    transaction.setFraudReason(prediction.fraudReason);
+                    
+                    updatedTransactions.add(transaction);
+                    
+                } catch (Exception e) {
+                    System.err.println("Failed to get ML prediction for transaction " + 
+                                     transaction.getTransactionId() + ": " + e.getMessage());
+                    // Keep original values if ML prediction fails
+                    updatedTransactions.add(transaction);
+                }
+            }
+            
+            // Save updated transactions
+            transactionRepository.saveAll(updatedTransactions);
+            
+        } catch (Exception e) {
+            System.err.println("Failed to update transactions with ML predictions: " + e.getMessage());
+        }
     }
     
     @Transactional
@@ -314,5 +442,65 @@ public class DataGeneratorService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to clear data: " + e.getMessage(), e);
         }
+    }
+    
+    // DTOs for communication with Python API
+    public static class TrainingTransaction {
+        @JsonProperty("transaction_id")
+        public String transactionId;
+        
+        @JsonProperty("user_id")
+        public String userId;
+        
+        @JsonProperty("merchant_name")
+        public String merchantName;
+        
+        @JsonProperty("merchant_category")
+        public String merchantCategory;
+        
+        public double amount;
+        public String currency;
+        public String timestamp;
+        
+        @JsonProperty("payment_method")
+        public String paymentMethod;
+        
+        @JsonProperty("card_last_four")
+        public String cardLastFour;
+        
+        @JsonProperty("location_city")
+        public String locationCity;
+        
+        @JsonProperty("location_country")
+        public String locationCountry;
+        
+        public double latitude;
+        public double longitude;
+        
+        @JsonProperty("ip_address")
+        public String ipAddress;
+        
+        @JsonProperty("device_type")
+        public String deviceType;
+        
+        @JsonProperty("is_fraudulent")
+        public boolean isFraudulent;
+    }
+    
+    public static class FraudPrediction {
+        @JsonProperty("is_fraud")
+        public boolean isFraud;
+        
+        @JsonProperty("fraud_probability")
+        public double fraudProbability;
+        
+        @JsonProperty("risk_score")
+        public double riskScore;
+        
+        @JsonProperty("fraud_reason")
+        public String fraudReason;
+        
+        @JsonProperty("feature_importance")
+        public Map<String, Double> featureImportance;
     }
 }
