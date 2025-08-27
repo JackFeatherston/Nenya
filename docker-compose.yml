@@ -49,10 +49,10 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      postgres:
-        condition: service_started
-      fraud-api:
-        condition: service_healthy
+      - postgres
+      # Remove the health check dependency for now to simplify debugging
+      # fraud-api:
+      #   condition: service_healthy
     restart: unless-stopped
 
   # Frontend Next.js Application
@@ -71,7 +71,7 @@ services:
     volumes:
       - ./frontend:/app          
       - /app/node_modules        
-    command: npm run dev        
+    # Remove the command override for now - let the Dockerfile handle it
 
 volumes:
   postgres_data:
