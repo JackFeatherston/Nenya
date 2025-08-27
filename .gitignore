@@ -4,3 +4,4 @@ node_modules
 
 backend/target/
 target/
+__pycache__
