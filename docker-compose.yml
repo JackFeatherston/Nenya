@@ -16,7 +16,7 @@ services:
   # Python Fraud Detection API
   fraud-api:
     build:
-      context: ./backend/fraud-api
+      context: ./fraud-api
       dockerfile: Dockerfile
     container_name: fraud_detection_api
     ports:
