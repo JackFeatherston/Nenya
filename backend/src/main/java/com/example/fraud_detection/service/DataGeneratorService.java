@@ -1,24 +1,21 @@
-# Database Configuration
-spring.datasource.url=jdbc:postgresql://localhost:5432/fraud_detection
-spring.datasource.username=postgres
-spring.datasource.password=password
-spring.datasource.driver-class-name=org.postgresql.Driver
+package com.example.fraud_detection.service;
 
-# JPA/Hibernate Configuration
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
+import com.example.fraud_detection.model.Transaction;
+import com.example.fraud_detection.repository.TransactionRepository;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.javafaker.Faker;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
-# Server Configuration
-server.port=8080
-
-# CORS Configuration
-spring.web.cors.allowed-origins=http://localhost:3000
-spring.web.cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS
-spring.web.cors.allowed-headers=*
-
-# Fraud Detection API Configuration
-fraud.detection.api.url=http://localhost:8000
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class DataGeneratorService {
