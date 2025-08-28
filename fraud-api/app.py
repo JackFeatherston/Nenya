@@ -66,6 +66,18 @@ class FraudPrediction(BaseModel):
     fraud_reason: str
     feature_importance: Dict[str, float]
 
+def validate_and_normalize_risk_score(score: float) -> float:
+    """Ensure risk score is always between 0 and 100"""
+    if pd.isna(score) or not isinstance(score, (int, float)):
+        return 0.0
+    return max(0.0, min(100.0, float(score)))
+
+def validate_and_normalize_probability(prob: float) -> float:
+    """Ensure probability is always between 0 and 1"""
+    if pd.isna(prob) or not isinstance(prob, (int, float)):
+        return 0.0
+    return max(0.0, min(1.0, float(prob)))
+
 @app.get("/")
 async def root():
     return {"message": "Fraud Detection API", "version": "1.0.0", "status": "running"}
@@ -291,10 +303,13 @@ async def predict_fraud(transaction: TransactionFeatures):
         
         # Make prediction
         fraud_probability = model.predict_proba(X)[0, 1]
+        
+        # FIXED: Normalize probability first, then calculate risk score properly
+        fraud_probability = validate_and_normalize_probability(fraud_probability)
         is_fraud = fraud_probability > 0.5
         
-        # Calculate risk score (0-100)
-        risk_score = min(100, fraud_probability * 120)
+        # FIXED: Calculate risk score as direct percentage (0-100)
+        risk_score = validate_and_normalize_risk_score(fraud_probability * 100)
         
         # Generate fraud reason based on feature importance
         fraud_reason = generate_fraud_reason(transaction, fraud_probability)
@@ -308,8 +323,8 @@ async def predict_fraud(transaction: TransactionFeatures):
         
         return FraudPrediction(
             is_fraud=is_fraud,
-            fraud_probability=float(fraud_probability),
-            risk_score=float(risk_score),
+            fraud_probability=fraud_probability,
+            risk_score=risk_score,
             fraud_reason=fraud_reason,
             feature_importance=feature_importance
         )
@@ -358,10 +373,15 @@ def get_fallback_prediction(transaction: TransactionFeatures) -> FraudPrediction
         risk_factors += 2
         reasons.append("high_risk_location")
     
-    # Calculate probability based on risk factors
-    fraud_probability = min(0.95, risk_factors * 0.15 + 0.05)
+    # FIXED: Calculate probability properly (max 10 risk factors)
+    max_risk_factors = 10
+    fraud_probability = min(0.95, (risk_factors / max_risk_factors) * 0.8 + 0.05)
+    fraud_probability = validate_and_normalize_probability(fraud_probability)
+    
     is_fraud = fraud_probability > 0.5
-    risk_score = min(100, fraud_probability * 120)
+    
+    # FIXED: Risk score is simply probability * 100, properly capped
+    risk_score = validate_and_normalize_risk_score(fraud_probability * 100)
     
     fraud_reason = "rule_based: " + ", ".join(reasons) if reasons else "low_risk_profile"
     

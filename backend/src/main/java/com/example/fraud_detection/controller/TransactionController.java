@@ -137,9 +137,13 @@ public class TransactionController {
             // Get fresh ML prediction
             DataGeneratorService.FraudPrediction prediction = fraudDetectionService.predictFraud(transaction);
             
-            // Update transaction
+            // FIXED: Validate and normalize risk score before saving
+            double validatedRiskScore = validateRiskScore(prediction.riskScore);
+            double validatedProbability = validateProbability(prediction.fraudProbability);
+            
+            // Update transaction with validated ML results
             transaction.setIsFraudulent(prediction.isFraud);
-            transaction.setRiskScore(java.math.BigDecimal.valueOf(prediction.riskScore)
+            transaction.setRiskScore(java.math.BigDecimal.valueOf(validatedRiskScore)
                                    .setScale(2, java.math.RoundingMode.HALF_UP));
             transaction.setFraudReason(prediction.fraudReason);
             
@@ -147,10 +151,16 @@ public class TransactionController {
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Transaction re-analyzed successfully");
-            response.put("fraud_probability", prediction.fraudProbability);
+            response.put("fraud_probability", validatedProbability);
             response.put("is_fraud", prediction.isFraud);
-            response.put("risk_score", prediction.riskScore);
+            response.put("risk_score", validatedRiskScore);
             response.put("fraud_reason", prediction.fraudReason);
+            
+            // Log if corrections were made
+            if (Math.abs(validatedRiskScore - prediction.riskScore) > 0.01) {
+                response.put("risk_score_corrected", true);
+                response.put("original_risk_score", prediction.riskScore);
+            }
             
             return ResponseEntity.ok(response);
             
@@ -159,5 +169,25 @@ public class TransactionController {
             response.put("error", "Failed to re-analyze transaction: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
+    }
+    
+    /**
+     * Validates and normalizes risk score to be between 0 and 100
+     */
+    private double validateRiskScore(double riskScore) {
+        if (Double.isNaN(riskScore) || Double.isInfinite(riskScore)) {
+            return 0.0;
+        }
+        return Math.max(0.0, Math.min(100.0, riskScore));
+    }
+    
+    /**
+     * Validates and normalizes fraud probability to be between 0 and 1
+     */
+    private double validateProbability(double probability) {
+        if (Double.isNaN(probability) || Double.isInfinite(probability)) {
+            return 0.0;
+        }
+        return Math.max(0.0, Math.min(1.0, probability));
     }
 }
