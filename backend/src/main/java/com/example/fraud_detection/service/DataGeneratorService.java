@@ -414,7 +414,7 @@ public class DataGeneratorService {
                     
                     // Log any corrections made
                     if (Math.abs(validatedRiskScore - prediction.riskScore) > 0.01) {
-                        logger.warn("Risk score corrected for transaction {}: {} -> {}", 
+                        System.err.println("Risk score corrected for transaction {}: {} -> {}", 
                                 transaction.getTransactionId(), 
                                 prediction.riskScore, 
                                 validatedRiskScore);
