@@ -175,8 +175,7 @@ public class DataGeneratorService {
             try {
                 trainMLModel();
             } catch (Exception e) {
-                System.err.println("Warning: Could not train ML model - " + e.getMessage());
-                System.err.println("Falling back to rule-based fraud detection");
+                // ML training failed, continue with fallback detection
             }
             
             // Update transactions with ML predictions
@@ -402,7 +401,7 @@ public class DataGeneratorService {
                     // Get ML prediction
                     FraudPrediction prediction = fraudDetectionService.predictFraud(transaction);
                     
-                    // FIXED: Validate and normalize risk score before saving
+                    // Validate and normalize risk score before saving
                     double validatedRiskScore = validateRiskScore(prediction.riskScore);
                     double validatedProbability = validateProbability(prediction.fraudProbability);
                     
@@ -412,20 +411,9 @@ public class DataGeneratorService {
                                         .setScale(2, RoundingMode.HALF_UP));
                     transaction.setFraudReason(prediction.fraudReason);
                     
-                    // Log any corrections made
-                    if (Math.abs(validatedRiskScore - prediction.riskScore) > 0.01) {
-                        System.err.println("Risk score corrected for transaction {}: {} -> {}", 
-                                transaction.getTransactionId(), 
-                                prediction.riskScore, 
-                                validatedRiskScore);
-                    }
-                    
                     updatedTransactions.add(transaction);
                     
                 } catch (Exception e) {
-                    System.err.println("Failed to get ML prediction for transaction " + 
-                                    transaction.getTransactionId() + ": " + e.getMessage());
-                    
                     // Set safe defaults if ML prediction fails
                     transaction.setIsFraudulent(false);
                     transaction.setRiskScore(BigDecimal.valueOf(25.0).setScale(2, RoundingMode.HALF_UP));
@@ -439,7 +427,7 @@ public class DataGeneratorService {
             transactionRepository.saveAll(updatedTransactions);
             
         } catch (Exception e) {
-            System.err.println("Failed to update transactions with ML predictions: " + e.getMessage());
+            // Failed to update transactions with ML predictions
         }
     }
 
