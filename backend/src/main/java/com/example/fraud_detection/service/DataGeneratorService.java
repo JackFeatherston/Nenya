@@ -49,24 +49,25 @@ private void updateTransactionsWithMLPredictions() {
     } catch (Exception e) {
         System.err.println("Failed to update transactions with ML predictions: " + e.getMessage());
     }
+
+    /**
+     * Validates and normalizes risk score to be between 0 and 100
+     */
+    private double validateRiskScore(double riskScore) {
+        if (Double.isNaN(riskScore) || Double.isInfinite(riskScore)) {
+            return 0.0;
+        }
+        return Math.max(0.0, Math.min(100.0, riskScore));
+    }
+
+    /**
+     * Validates and normalizes fraud probability to be between 0 and 1
+     */
+    private double validateProbability(double probability) {
+        if (Double.isNaN(probability) || Double.isInfinite(probability)) {
+            return 0.0;
+        }
+        return Math.max(0.0, Math.min(1.0, probability));
+    }
 }
 
-/**
- * Validates and normalizes risk score to be between 0 and 100
- */
-private double validateRiskScore(double riskScore) {
-    if (Double.isNaN(riskScore) || Double.isInfinite(riskScore)) {
-        return 0.0;
-    }
-    return Math.max(0.0, Math.min(100.0, riskScore));
-}
-
-/**
- * Validates and normalizes fraud probability to be between 0 and 1
- */
-private double validateProbability(double probability) {
-    if (Double.isNaN(probability) || Double.isInfinite(probability)) {
-        return 0.0;
-    }
-    return Math.max(0.0, Math.min(1.0, probability));
-}
