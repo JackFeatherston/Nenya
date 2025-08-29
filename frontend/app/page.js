@@ -43,7 +43,11 @@ const FraudGlobe = () => {
         };
         
         setWorldData(worldGeoData);
-      } catch (err) {}
+      } catch (err) {
+        console.error('Failed to load world data:', err);
+        // Continue without world data - app should still work
+        setWorldData(null);
+      }
     };
 
     loadWorldData();
@@ -55,11 +59,12 @@ const FraudGlobe = () => {
       setLoading(true);
       
       // Fetch ALL transactions, not just fraudulent ones
-      const transactionsResponse = await fetch('http://localhost:8080/api/transactions');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const transactionsResponse = await fetch(`${apiUrl}/api/transactions`);
       if (!transactionsResponse.ok) throw new Error('Failed to fetch transactions');
       const transactionsData = await transactionsResponse.json();
       
-      const statsResponse = await fetch('http://localhost:8080/api/transactions/stats');
+      const statsResponse = await fetch(`${apiUrl}/api/transactions/stats`);
       if (!statsResponse.ok) throw new Error('Failed to fetch transaction stats');
       const statsData = await statsResponse.json();
       
@@ -97,7 +102,8 @@ const FraudGlobe = () => {
       setIsGenerating(true);
       setError(null);
       
-      const response = await fetch(`http://localhost:8080/api/generate-data?count=${count}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/generate-data?count=${count}`, {
         method: 'POST',
       });
       
@@ -120,7 +126,8 @@ const FraudGlobe = () => {
       setIsClearing(true);
       setError(null);
       
-      const response = await fetch('http://localhost:8080/api/transactions', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/transactions`, {
         method: 'DELETE',
       });
       
