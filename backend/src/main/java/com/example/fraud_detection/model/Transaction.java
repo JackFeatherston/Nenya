@@ -67,6 +67,9 @@ public class Transaction {
     @Column(name = "risk_score", precision = 5, scale = 2)
     private BigDecimal riskScore;
     
+    @Column(name = "fraud_probability", precision = 5, scale = 4)
+    private BigDecimal fraudProbability;
+    
     // Constructors
     public Transaction() {}
     
@@ -94,6 +97,7 @@ public class Transaction {
         this.isFraudulent = isFraudulent;
         this.fraudReason = fraudReason;
         this.riskScore = riskScore;
+        this.fraudProbability = null; // Will be set later during ML prediction
     }
     
     // Getters and Setters
@@ -153,4 +157,7 @@ public class Transaction {
     
     public BigDecimal getRiskScore() { return riskScore; }
     public void setRiskScore(BigDecimal riskScore) { this.riskScore = riskScore; }
+    
+    public BigDecimal getFraudProbability() { return fraudProbability; }
+    public void setFraudProbability(BigDecimal fraudProbability) { this.fraudProbability = fraudProbability; }
 }

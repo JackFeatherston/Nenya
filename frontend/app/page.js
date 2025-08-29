@@ -454,7 +454,7 @@ const FraudGlobe = () => {
               <div className="flex justify-between">
                 <span style={{ color: '#374151' }}>Risk Score:</span>
                 <span className="font-bold text-orange-400">
-                  {selectedTransaction.riskScore ? (selectedTransaction.riskScore * 100).toFixed(1) + '%' : 'N/A'}
+                  {selectedTransaction.riskScore ? parseFloat(selectedTransaction.riskScore).toFixed(1) + '%' : 'N/A'}
                 </span>
               </div>
             </div>
@@ -681,13 +681,13 @@ const FraudGlobe = () => {
                       </td>
                       <td className="p-2 sm:p-3">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          parseFloat(transaction.riskScore || 0) > 0.7 
+                          parseFloat(transaction.riskScore || 0) > 70 
                             ? 'bg-red-900 text-red-300' 
-                            : parseFloat(transaction.riskScore || 0) > 0.3 
+                            : parseFloat(transaction.riskScore || 0) > 30 
                             ? 'bg-yellow-900 text-yellow-300' 
                             : 'bg-green-900 text-green-300'
                         }`}>
-                          {transaction.riskScore ? (parseFloat(transaction.riskScore) * 100).toFixed(0) + '%' : 'N/A'}
+                          {transaction.riskScore ? parseFloat(transaction.riskScore).toFixed(0) + '%' : 'N/A'}
                         </span>
                       </td>
                       <td className="p-2 sm:p-3">

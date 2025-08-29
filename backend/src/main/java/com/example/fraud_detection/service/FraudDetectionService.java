@@ -78,6 +78,7 @@ public class FraudDetectionService {
             features.longitude = transaction.getLongitude().doubleValue();
             features.userId = transaction.getUserId();
             features.merchantName = transaction.getMerchantName();
+            features.timestamp = transaction.getTimestamp().toString();
             
             HttpEntity<TransactionFeatures> request = new HttpEntity<>(features, headers);
             
@@ -161,5 +162,7 @@ public class FraudDetectionService {
         
         @JsonProperty("merchant_name")
         public String merchantName;
+        
+        public String timestamp;
     }
 }

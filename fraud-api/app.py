@@ -110,7 +110,6 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['hour_of_day'] = df['timestamp'].dt.hour
         df['day_of_week'] = df['timestamp'].dt.dayofweek
-        df['is_weekend'] = df['day_of_week'].isin([5, 6]).astype(int)
     
     # Amount-based features
     df['amount_log'] = np.log1p(df['amount'])
@@ -163,7 +162,7 @@ def preprocess_data(df: pd.DataFrame, is_training: bool = False) -> pd.DataFrame
     
     # Binary/engineered features
     binary_columns = [
-        'amount_rounded', 'is_weekend', 'is_night', 'is_business_hours',
+        'amount_rounded', 'is_night', 'is_business_hours',
         'is_high_risk_country', 'is_high_risk_payment', 'is_high_risk_category'
     ]
     

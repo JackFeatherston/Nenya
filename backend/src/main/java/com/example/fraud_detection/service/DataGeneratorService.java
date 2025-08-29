@@ -409,15 +409,25 @@ public class DataGeneratorService {
                     transaction.setIsFraudulent(prediction.isFraud);
                     transaction.setRiskScore(BigDecimal.valueOf(validatedRiskScore)
                                         .setScale(2, RoundingMode.HALF_UP));
+                    transaction.setFraudProbability(BigDecimal.valueOf(validatedProbability)
+                                        .setScale(4, RoundingMode.HALF_UP));
                     transaction.setFraudReason(prediction.fraudReason);
                     
                     updatedTransactions.add(transaction);
                     
                 } catch (Exception e) {
-                    // Set safe defaults if ML prediction fails
-                    transaction.setIsFraudulent(false);
-                    transaction.setRiskScore(BigDecimal.valueOf(25.0).setScale(2, RoundingMode.HALF_UP));
-                    transaction.setFraudReason("prediction_failed");
+                    // Use fallback rule-based detection if ML prediction fails
+                    FraudPrediction fallbackPrediction = getFallbackPrediction(transaction);
+                    
+                    double validatedRiskScore = validateRiskScore(fallbackPrediction.riskScore);
+                    
+                    transaction.setIsFraudulent(fallbackPrediction.isFraud);
+                    transaction.setRiskScore(BigDecimal.valueOf(validatedRiskScore)
+                                        .setScale(2, RoundingMode.HALF_UP));
+                    transaction.setFraudProbability(BigDecimal.valueOf(
+                            validateProbability(fallbackPrediction.fraudProbability))
+                                        .setScale(4, RoundingMode.HALF_UP));
+                    transaction.setFraudReason(fallbackPrediction.fraudReason);
                     
                     updatedTransactions.add(transaction);
                 }
@@ -449,6 +459,72 @@ public class DataGeneratorService {
             return 0.0;
         }
         return Math.max(0.0, Math.min(1.0, probability));
+    }
+    
+    /**
+     * Provides fallback fraud detection using rule-based logic
+     */
+    private FraudPrediction getFallbackPrediction(Transaction transaction) {
+        double amount = transaction.getAmount().doubleValue();
+        int hour = transaction.getTimestamp().getHour();
+        String category = transaction.getMerchantCategory();
+        String paymentMethod = transaction.getPaymentMethod();
+        String country = transaction.getLocationCountry();
+        
+        int riskFactors = 0;
+        java.util.List<String> reasons = new ArrayList<>();
+        
+        // High amount transactions
+        if (amount > 2000) {
+            riskFactors += 3;
+            reasons.add("high_amount");
+        } else if (amount > 1000) {
+            riskFactors += 2;
+            reasons.add("elevated_amount");
+        }
+        
+        // Very small amounts might be card testing
+        if (amount < 5.0) {
+            riskFactors += 2;
+            reasons.add("micro_transaction");
+        }
+        
+        // Unusual hours
+        if (hour < 6 || hour > 23) {
+            riskFactors += 2;
+            reasons.add("unusual_hours");
+        }
+        
+        // High-risk categories
+        if (Arrays.asList("Online Shopping", "Electronics", "Gas Station").contains(category)) {
+            riskFactors += 1;
+            reasons.add("high_risk_category");
+        }
+        
+        // High-risk payment methods
+        if (Arrays.asList("PayPal", "Apple Pay", "Google Pay").contains(paymentMethod)) {
+            riskFactors += 1;
+            reasons.add("high_risk_payment");
+        }
+        
+        // High-risk countries
+        if (Arrays.asList("Nigeria", "Russia", "China", "Romania", "Ukraine").contains(country)) {
+            riskFactors += 2;
+            reasons.add("high_risk_location");
+        }
+        
+        // Calculate probability (max 10 risk factors)
+        double maxRiskFactors = 10.0;
+        double fraudProbability = Math.min(0.95, (riskFactors / maxRiskFactors) * 0.8 + 0.05);
+        fraudProbability = validateProbability(fraudProbability);
+        
+        boolean isFraud = fraudProbability > 0.5;
+        double riskScore = validateRiskScore(fraudProbability * 100);
+        
+        String fraudReason = reasons.isEmpty() ? "low_risk_profile" : 
+                            "rule_based: " + String.join(", ", reasons);
+        
+        return new FraudPrediction(isFraud, fraudProbability, riskScore, fraudReason);
     }
     
     @Transactional
@@ -525,5 +601,17 @@ public class DataGeneratorService {
         
         @JsonProperty("feature_importance")
         public Map<String, Double> featureImportance;
+        
+        // Default constructor
+        public FraudPrediction() {}
+        
+        // Constructor for fallback cases
+        public FraudPrediction(boolean isFraud, double fraudProbability, double riskScore, String fraudReason) {
+            this.isFraud = isFraud;
+            this.fraudProbability = fraudProbability;
+            this.riskScore = riskScore;
+            this.fraudReason = fraudReason;
+            this.featureImportance = new HashMap<>();
+        }
     }
 }
