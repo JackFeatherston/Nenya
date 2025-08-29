@@ -8,6 +8,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * REST controller for ML fraud detection system monitoring and health checks.
+ * Provides endpoints to check ML API status and model health.
+ */
 @RestController
 @RequestMapping("/api/ml")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -16,6 +20,10 @@ public class MLController {
     @Autowired
     private FraudDetectionService fraudDetectionService;
     
+    /**
+     * Retrieves the current status of the ML fraud detection system.
+     * @return ML system status including API availability and model information
+     */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getMLStatus() {
         Map<String, Object> status = new HashMap<>();
@@ -41,6 +49,10 @@ public class MLController {
         return ResponseEntity.ok(status);
     }
     
+    /**
+     * Performs a health check on the ML fraud detection API.
+     * @return Health status with timestamp, returns 503 if API is unavailable
+     */
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> healthCheck() {
         Map<String, Object> health = new HashMap<>();

@@ -8,7 +8,6 @@ import com.github.javafaker.Faker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -17,6 +16,10 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Service for generating synthetic transaction data and managing fraud detection.
+ * Creates realistic transaction patterns and integrates with ML-based fraud detection.
+ */
 @Service
 public class DataGeneratorService {
     
@@ -28,7 +31,6 @@ public class DataGeneratorService {
     
     private final Faker faker = new Faker();
     private final Random random = new Random();
-    private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     private final String[] merchantCategories = {
@@ -124,7 +126,9 @@ public class DataGeneratorService {
         new CityLocation("Hanoi", "Vietnam", 21.0285, 105.8542)
     );
     
-    // Inner class for city locations
+    /**
+     * Represents a city location with coordinates for realistic transaction generation.
+     */
     private static class CityLocation {
         final String city;
         final String country;
@@ -139,6 +143,12 @@ public class DataGeneratorService {
         }
     }
     
+    /**
+     * Generates synthetic transaction data with realistic patterns and fraud detection.
+     * @param totalTransactions Number of transactions to generate (1-100,000)
+     * @throws IllegalArgumentException if count is invalid
+     * @throws RuntimeException if data generation fails
+     */
     @Transactional
     public void generateSyntheticData(int totalTransactions) {
         if (totalTransactions <= 0) {
@@ -171,11 +181,11 @@ public class DataGeneratorService {
                 transactionRepository.flush();
             }
             
-            // Now train the ML model with generated data if Python service is available
+            // Train ML model with generated data if available
             try {
                 trainMLModel();
             } catch (Exception e) {
-                // ML training failed, continue with fallback detection
+                // Continue with fallback detection if ML training fails
             }
             
             // Update transactions with ML predictions
@@ -186,6 +196,10 @@ public class DataGeneratorService {
         }
     }
     
+    /**
+     * Generates a single realistic transaction with proper geographic and temporal patterns.
+     * @return New transaction with realistic attributes
+     */
     private Transaction generateRealisticTransaction() {
         String transactionId = "TXN-" + faker.number().digits(12);
         String userId = "USER-" + faker.number().digits(8);
@@ -221,6 +235,11 @@ public class DataGeneratorService {
         );
     }
     
+    /**
+     * Generates realistic transaction amounts based on merchant category patterns.
+     * @param merchantCategory The type of merchant
+     * @return Realistic transaction amount for the category
+     */
     private BigDecimal generateRealisticAmount(String merchantCategory) {
         // Generate amounts based on realistic spending patterns for different categories
         double baseAmount;
@@ -279,6 +298,10 @@ public class DataGeneratorService {
         return BigDecimal.valueOf(randomAmount).setScale(2, RoundingMode.HALF_UP);
     }
     
+    /**
+     * Generates realistic timestamps with business hour patterns.
+     * @return Timestamp with realistic temporal distribution
+     */
     private LocalDateTime generateRealisticTimestamp() {
         // Generate timestamps with realistic patterns
         LocalDateTime baseTime = faker.date()
@@ -314,6 +337,10 @@ public class DataGeneratorService {
         return worldCities.get(random.nextInt(worldCities.size()));
     }
     
+    /**
+     * Trains the ML model using generated transaction data with rule-based initial labels.
+     * @throws RuntimeException if model training fails
+     */
     private void trainMLModel() {
         try {
             List<Transaction> allTransactions = transactionRepository.findAll();
@@ -354,6 +381,11 @@ public class DataGeneratorService {
         }
     }
     
+    /**
+     * Determines initial fraud status using rule-based logic for ML model bootstrapping.
+     * @param transaction Transaction to analyze
+     * @return true if transaction should be labeled as fraudulent for training
+     */
     private boolean determineInitialFraudStatus(Transaction transaction) {
         // Rule-based logic to create initial training labels
         // This creates a more sophisticated fraud pattern than the original hardcoded approach
@@ -462,7 +494,9 @@ public class DataGeneratorService {
     }
     
     /**
-     * Provides fallback fraud detection using rule-based logic
+     * Provides fallback fraud detection using rule-based logic when ML is unavailable.
+     * @param transaction Transaction to analyze
+     * @return Fraud prediction based on rule-based analysis
      */
     private FraudPrediction getFallbackPrediction(Transaction transaction) {
         double amount = transaction.getAmount().doubleValue();
@@ -527,6 +561,10 @@ public class DataGeneratorService {
         return new FraudPrediction(isFraud, fraudProbability, riskScore, fraudReason);
     }
     
+    /**
+     * Clears all transaction data from the database.
+     * @throws RuntimeException if data clearing fails
+     */
     @Transactional
     public void clearAllData() {
         try {

@@ -13,6 +13,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Service for integrating with the Python ML fraud detection API.
+ * Handles model training, fraud prediction, and API health checking.
+ */
 @Service
 public class FraudDetectionService {
     
@@ -27,6 +31,11 @@ public class FraudDetectionService {
         this.objectMapper = new ObjectMapper();
     }
     
+    /**
+     * Trains the ML fraud detection model with provided transaction data.
+     * @param trainingData List of transactions with fraud labels for training
+     * @throws RuntimeException if training fails or API is unavailable
+     */
     public void trainModel(List<DataGeneratorService.TrainingTransaction> trainingData) {
         try {
             String url = fraudApiUrl + "/train";
@@ -43,10 +52,7 @@ public class FraudDetectionService {
                 url, HttpMethod.POST, request, Map.class
             );
             
-            if (response.getStatusCode().is2xxSuccessful()) {
-                System.out.println("Model training completed successfully");
-                System.out.println("Training result: " + response.getBody());
-            } else {
+            if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("Failed to train model: " + response.getBody());
             }
             
@@ -58,6 +64,12 @@ public class FraudDetectionService {
         }
     }
     
+    /**
+     * Predicts fraud for a single transaction using the ML model.
+     * @param transaction Transaction to analyze
+     * @return Fraud prediction with probability, risk score, and reasoning
+     * @throws RuntimeException if prediction fails or API is unavailable
+     */
     public DataGeneratorService.FraudPrediction predictFraud(Transaction transaction) {
         try {
             String url = fraudApiUrl + "/predict";
@@ -100,6 +112,10 @@ public class FraudDetectionService {
         }
     }
     
+    /**
+     * Checks if the fraud detection API is available and responding.
+     * @return true if API is healthy, false otherwise
+     */
     public boolean isApiAvailable() {
         try {
             String url = fraudApiUrl + "/health";
@@ -110,6 +126,10 @@ public class FraudDetectionService {
         }
     }
     
+    /**
+     * Retrieves the current status of the ML model from the API.
+     * @return Map containing model training status and feature information
+     */
     public Map<String, Object> getModelStatus() {
         try {
             String url = fraudApiUrl + "/model/status";
@@ -132,7 +152,10 @@ public class FraudDetectionService {
         }
     }
     
-    // DTO for sending transaction features to Python API
+    /**
+     * Data Transfer Object for sending transaction features to the Python ML API.
+     * Uses Jackson annotations for proper JSON serialization.
+     */
     public static class TransactionFeatures {
         public double amount;
         

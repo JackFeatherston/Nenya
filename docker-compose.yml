@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15
     container_name: fraud_detection_db
@@ -13,7 +12,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  # Python Fraud Detection API
   fraud-api:
     build:
       context: ./fraud-api
@@ -22,8 +20,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - fraud_models:/app/models  # Persist trained models
-      - ./fraud-api:/app          # Development volume mount
+      - fraud_models:/app/models
+      - ./fraud-api:/app
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
@@ -34,7 +32,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # Backend Spring Boot Application
   backend:
     build:
       context: ./backend
@@ -45,17 +42,13 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - FRAUD_DETECTION_API_URL=http://fraud-api:8000  # Internal Docker network URL
+      - FRAUD_DETECTION_API_URL=http://fraud-api:8000
     ports:
       - "8080:8080"
     depends_on:
       - postgres
-      # Remove the health check dependency for now to simplify debugging
-      # fraud-api:
-      #   condition: service_healthy
     restart: unless-stopped
 
-  # Frontend Next.js Application
   frontend:
     build:
       context: ./frontend
@@ -69,9 +62,8 @@ services:
       - backend
     restart: unless-stopped
     volumes:
-      - ./frontend:/app          
-      - /app/node_modules        
-    # Remove the command override for now - let the Dockerfile handle it
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
   postgres_data:

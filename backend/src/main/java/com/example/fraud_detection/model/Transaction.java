@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * JPA Entity representing a financial transaction with fraud detection capabilities.
+ * Contains transaction details, geolocation data, and ML-based fraud analysis results.
+ */
 @Entity
 @Table(name = "transactions")
 public class Transaction {
@@ -45,7 +49,6 @@ public class Transaction {
     @Column(name = "location_country")
     private String locationCountry;
     
-    // NEW: Add latitude and longitude fields
     @Column(name = "latitude", precision = 10, scale = 7)
     private BigDecimal latitude;
     
@@ -70,9 +73,14 @@ public class Transaction {
     @Column(name = "fraud_probability", precision = 5, scale = 4)
     private BigDecimal fraudProbability;
     
-    // Constructors
+    /**
+     * Default constructor required by JPA.
+     */
     public Transaction() {}
     
+    /**
+     * Constructor for creating a new transaction with all essential fields.
+     */
     public Transaction(String transactionId, String userId, String merchantName, 
                       String merchantCategory, BigDecimal amount, String currency,
                       LocalDateTime timestamp, String paymentMethod, String cardLastFour,
@@ -97,7 +105,7 @@ public class Transaction {
         this.isFraudulent = isFraudulent;
         this.fraudReason = fraudReason;
         this.riskScore = riskScore;
-        this.fraudProbability = null; // Will be set later during ML prediction
+        this.fraudProbability = null;
     }
     
     // Getters and Setters

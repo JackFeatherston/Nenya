@@ -8,10 +8,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for handling transaction-related operations.
+ * Provides endpoints for transaction management, fraud detection, and analytics.
+ */
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -26,21 +32,37 @@ public class TransactionController {
     @Autowired
     private FraudDetectionService fraudDetectionService;
     
+    /**
+     * Retrieves all transactions ordered by timestamp descending.
+     * @return List of all transactions
+     */
     @GetMapping("/transactions")
     public List<Transaction> getAllTransactions() {
         return transactionRepository.findAllOrderByTimestampDesc();
     }
     
+    /**
+     * Retrieves only fraudulent transactions.
+     * @return List of fraudulent transactions
+     */
     @GetMapping("/transactions/fraudulent")
     public List<Transaction> getFraudulentTransactions() {
         return transactionRepository.findByIsFraudulent(true);
     }
     
+    /**
+     * Retrieves only legitimate transactions.
+     * @return List of legitimate transactions
+     */
     @GetMapping("/transactions/legitimate")
     public List<Transaction> getLegitimateTransactions() {
         return transactionRepository.findByIsFraudulent(false);
     }
     
+    /**
+     * Retrieves transaction statistics including ML model status.
+     * @return Map containing transaction counts, fraud rate, and ML status
+     */
     @GetMapping("/transactions/stats")
     public Map<String, Object> getTransactionStats() {
         Map<String, Object> stats = new HashMap<>();
@@ -69,6 +91,11 @@ public class TransactionController {
         return stats;
     }
     
+    /**
+     * Generates synthetic transaction data with fraud detection.
+     * @param count Number of transactions to generate (default: 1000)
+     * @return Response with generation status and ML detection info
+     */
     @PostMapping("/generate-data")
     public ResponseEntity<Map<String, String>> generateData(@RequestParam(defaultValue = "1000") int count) {
         try {
@@ -95,6 +122,10 @@ public class TransactionController {
         }
     }
     
+    /**
+     * Clears all transaction data from the database.
+     * @return Response indicating success or failure
+     */
     @DeleteMapping("/transactions")
     public ResponseEntity<Map<String, String>> clearAllData() {
         try {
@@ -109,6 +140,11 @@ public class TransactionController {
         }
     }
     
+    /**
+     * Retrieves a specific transaction by ID.
+     * @param id Transaction ID
+     * @return Transaction if found, 404 if not found
+     */
     @GetMapping("/transactions/{id}")
     public ResponseEntity<Transaction> getTransactionById(@PathVariable Long id) {
         return transactionRepository.findById(id)
@@ -116,6 +152,11 @@ public class TransactionController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    /**
+     * Re-analyzes a transaction using the ML API to update fraud detection results.
+     * @param id Transaction ID to re-analyze
+     * @return Updated fraud analysis results or error response
+     */
     @PostMapping("/transactions/{id}/reanalyze")
     public ResponseEntity<Map<String, Object>> reanalyzeTransaction(@PathVariable Long id) {
         try {
@@ -137,7 +178,7 @@ public class TransactionController {
             // Get fresh ML prediction
             DataGeneratorService.FraudPrediction prediction = fraudDetectionService.predictFraud(transaction);
             
-            // FIXED: Validate and normalize risk score before saving
+            // Validate and normalize risk score before saving
             double validatedRiskScore = validateRiskScore(prediction.riskScore);
             double validatedProbability = validateProbability(prediction.fraudProbability);
             
@@ -156,7 +197,7 @@ public class TransactionController {
             response.put("risk_score", validatedRiskScore);
             response.put("fraud_reason", prediction.fraudReason);
             
-            // Log if corrections were made
+            // Include correction info if values were adjusted
             if (Math.abs(validatedRiskScore - prediction.riskScore) > 0.01) {
                 response.put("risk_score_corrected", true);
                 response.put("original_risk_score", prediction.riskScore);

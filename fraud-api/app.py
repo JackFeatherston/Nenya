@@ -1,18 +1,17 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report
 from datetime import datetime
 import joblib
 import os
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -303,11 +302,11 @@ async def predict_fraud(transaction: TransactionFeatures):
         # Make prediction
         fraud_probability = model.predict_proba(X)[0, 1]
         
-        # FIXED: Normalize probability first, then calculate risk score properly
+        # Normalize probability first, then calculate risk score
         fraud_probability = validate_and_normalize_probability(fraud_probability)
         is_fraud = fraud_probability > 0.5
         
-        # FIXED: Calculate risk score as direct percentage (0-100)
+        # Calculate risk score as direct percentage (0-100)
         risk_score = validate_and_normalize_risk_score(fraud_probability * 100)
         
         # Generate fraud reason based on feature importance
@@ -372,14 +371,14 @@ def get_fallback_prediction(transaction: TransactionFeatures) -> FraudPrediction
         risk_factors += 2
         reasons.append("high_risk_location")
     
-    # FIXED: Calculate probability properly (max 10 risk factors)
+    # Calculate probability (max 10 risk factors)
     max_risk_factors = 10
     fraud_probability = min(0.95, (risk_factors / max_risk_factors) * 0.8 + 0.05)
     fraud_probability = validate_and_normalize_probability(fraud_probability)
     
     is_fraud = fraud_probability > 0.5
     
-    # FIXED: Risk score is simply probability * 100, properly capped
+    # Risk score is probability * 100, properly capped
     risk_score = validate_and_normalize_risk_score(fraud_probability * 100)
     
     fraud_reason = "rule_based: " + ", ".join(reasons) if reasons else "low_risk_profile"
