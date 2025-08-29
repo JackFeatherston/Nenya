@@ -169,6 +169,28 @@ export const FraudulentReasonsChart = ({ transactions }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 
+  // Function to format fraud reason labels for display
+  const formatFraudReason = (reason) => {
+    if (!reason || reason.trim() === '') return 'Unknown';
+    
+    // Handle ml_detected format with comma-separated reasons
+    if (reason.startsWith('ml_detected:')) {
+      const subReasonsPart = reason.replace('ml_detected:', '').trim();
+      if (subReasonsPart === '') return 'ML Detected';
+      
+      // Split by comma and take the first reason for the label
+      const firstReason = subReasonsPart.split(',')[0].trim();
+      return firstReason.split('_').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+    }
+    
+    // Handle other formats - convert snake_case to Title Case
+    return reason.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
   useEffect(() => {
     if (!chartRef.current || !transactions.length) return;
 
@@ -185,7 +207,8 @@ export const FraudulentReasonsChart = ({ transactions }) => {
       reasonStats[t.fraudReason] = (reasonStats[t.fraudReason] || 0) + 1;
     });
 
-    const labels = Object.keys(reasonStats);
+    const rawLabels = Object.keys(reasonStats);
+    const labels = rawLabels.map(formatFraudReason);
     const data = Object.values(reasonStats);
 
     const ctx = chartRef.current.getContext('2d');
@@ -264,7 +287,7 @@ export const AnalyticsCards = ({ transactions }) => {
   const fraudLossesPercentage = totalRevenue > 0 ? (fraudLosses / totalRevenue * 100).toFixed(2) : 0;
   
   const averageRiskScore = transactions.length > 0 ? 
-    (transactions.reduce((sum, t) => sum + parseFloat(t.riskScore || 0), 0) / transactions.length * 100).toFixed(1) : 0;
+    (transactions.reduce((sum, t) => sum + parseFloat(t.riskScore || 0), 0) / transactions.length).toFixed(1) : 0;
   
   const averageTransactionAmount = transactions.length > 0 ?
     (transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0) / transactions.length).toFixed(2) : 0;
@@ -273,7 +296,7 @@ export const AnalyticsCards = ({ transactions }) => {
   const averageFraudAmount = fraudTransactions.length > 0 ?
     (fraudTransactions.reduce((sum, t) => sum + parseFloat(t.amount), 0) / fraudTransactions.length).toFixed(2) : 0;
   
-  const highRiskTransactions = transactions.filter(t => parseFloat(t.riskScore || 0) > 0.7).length;
+  const highRiskTransactions = transactions.filter(t => parseFloat(t.riskScore || 0) > 70).length;
   
   const uniqueUsers = new Set(transactions.map(t => t.userId)).size;
 
@@ -290,7 +313,7 @@ export const AnalyticsCards = ({ transactions }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-red-400 mb-2">{fraudRate}%</div>
-          <div className="text-sm" style={{ color: '#90949C' }}>Fraud Rate %</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Rate of Fraudulent Transactions</div>
         </div>
         
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
@@ -300,12 +323,12 @@ export const AnalyticsCards = ({ transactions }) => {
         
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-yellow-400 mb-2">{formatAmount(fraudLosses)}</div>
-          <div className="text-sm" style={{ color: '#90949C' }}>Fraud Amount $</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Monetary Loss Due to Fraudulent Transactions</div>
         </div>
         
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-purple-400 mb-2">{averageRiskScore}%</div>
-          <div className="text-sm" style={{ color: '#90949C' }}>Avg Risk Score</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Average Risk Score</div>
         </div>
       </div>
 
@@ -315,12 +338,12 @@ export const AnalyticsCards = ({ transactions }) => {
           <div className="text-3xl font-bold mb-2" style={{ color: '#4267B3' }}>
             {formatAmount(averageTransactionAmount)}
           </div>
-          <div className="text-sm" style={{ color: '#90949C' }}>Avg Transaction Amount</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Average Transaction Amount</div>
         </div>
         
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-green-400 mb-2">{formatAmount(averageFraudAmount)}</div>
-          <div className="text-sm" style={{ color: '#90949C' }}>Avg Fraud Amount</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Average Fraudulent Transaction</div>
         </div>
         
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
