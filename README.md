@@ -1,7 +1,14 @@
 # Nenya 
-A robust fraud detection engine with geospatial, categorial, and numerical analytics. <br/><br/>
+A robust fraud detection engine with geographic visualization, categorial and numerical analytics, and real-time risk assessment. <br/><br/>
 
-Nenya is a multi-service fraud detection application featuring a Spring Boot backend, FastAPI machine learning service using Scikit-learn, and a Next.js frontend with D3.js and Chart.js visualizations. The application utilizes Java Faker libraries to generate synthetic data that models real world credit card transactions, loads the data into a Postgres database simulating a ledger database, trains Random Forest models for fraud detection, and provides interactive geographic visualization of fraud patterns. Click the shuffle button to generate a sample size of 1000 simulated transactions and get calculated insights that real world companies utilize in their own analytics. Click the delete button to clear the data. 
+Nenya is a multi-service fraud detection application featuring a Spring Boot backend, FastAPI machine learning 
+service using Scikit-learn, and a Next.js frontend with D3.js and Chart.js visualizations. The application utilizes 
+Java Faker libraries to generate synthetic data that models real world credit card transactions, loads the data into 
+a Postgres database simulating a ledger database, trains Random Forest models for fraud detection, and provides 
+interactive geographic visualization of fraud patterns along with relevant insights and analytics. Click the 
+shuffle button to generate a sample size of 
+1000 simulated transactions and get calculated insights that real world companies utilize in their own analytics. 
+Click the delete button to clear the data. 
 
 <img width="2102" height="1223" alt="Image" src="https://github.com/user-attachments/assets/17b1d4af-a71a-43ca-a55b-3ab72069758c" />
 
@@ -39,14 +46,13 @@ AI/ML Stack
 
 ## System Requirements
 - Docker and Docker Compose
-- 16GB+ RAM <b>highly</b> recommended for AI models (Document analysis using llama2:7b will take a significant amount of time with minimum hardware requirements)
-- 5GB+ storage for models and documents
+- Volume storage?
 
 ## Installation & Setup
 1. Clone the Repository
 ```
 git clone <repository-url>
-cd briefly
+cd nenya
 ```
 
 2.  Build and start all services
@@ -54,38 +60,27 @@ cd briefly
 docker-compose up --build
 ```
 
-3. Download AI Models (One-time only)
-
-```
-docker exec briefly-ollama ollama pull all-minilm
-docker exec briefly-ollama ollama pull llama2:7b
-```
-
-4. Navigate to the application
+3. Navigate to the application
 ```
 http://localhost:3000
 ```
 
 
 ## Usage
-1. Upload Documents 
-- Click "Upload Files" and select PDF documents 
-- Multiple files can be uploaded simultaneously 
+1. Generate Transactions
+- Click the shuffle button to generate a sample size of 1000 transcations
+- This will take a while so please wait patiently until the analytics load in 
 
-2. Process Documents
-- Click "Process Documents" to generate vector embeddings 
-- This extracts text and creates searchable chunks 
-- Wait for processing to complete 
-- NOTE: If you forgot to upload a document that you want analyzed and you already hit "Process Documents", all you need to do is hit "Process Documents" again after you've added the document. If you forget to hit "Process Documents" after you added your new document, the analysis will be done on the previously processed documents and will exclude the new document added entirely.
+2. Clear Transactions
+- Click the trash can button to clear the transactions
 
-3. Analyze Documents
-- Click "Analyze Documents" to run AI analysis 
-- The system prompts models based on a preset list of queries the documents for key legal information
-- With multiple documents to carefully index and parse, results will take several minutes to load
-- Results are displayed in structured format
+3. Interative Globe
+- Every heat spot on the globe that represents a fraudulent transaction 
+- Each fraudulent transaction is mapped accurately with latitude and longitudinal coordinates 
+- Interact with any heat spot to reveal metadata for that transaction including location coordinates, device used for purchase, and more.
 
-4. Review Results
-- The analysis provides structured information for:
+4. Insights
+- The following analytics are calculated and displayed:
 
 - Plaintiff: Name identification
 - DOB: Date of birth extraction
@@ -103,14 +98,13 @@ http://localhost:3000
 ## Docker Services
 
 services
-- ollama:      # AI model server (Port 11434)
-- backend:     # FastAPI server (Port 8000)  
+- fraud-api:      # Fast API server (Port 8000)
+- backend:     # Spring server (Port 8080)  
 - frontend:    # Next.js app (Port 3000)
   
 Data Persistence
-- ollama_data: Stores downloaded AI models
-- ./data: PDF upload directory
-- ./chroma_db: Vector database storage 
+- postgres_data: Stores all transaction data
+- fraud_models: Stores trained fraud detection model
 
 
 
