@@ -82,18 +82,14 @@ http://localhost:3000
 4. Insights
 - The following analytics are calculated and displayed:
 
-- Plaintiff: Name identification
-- DOB: Date of birth extraction
-- SSN: Social security number (when legally appropriate)
-- DOI: Date of incident
-- Insurance: Insurance company information
-- Incident Overview: Summary of the incident
-- Treatment Overview: Medical treatment details
-- Past Medical History: Relevant medical background
-- Social History: Witness accounts and social factors
-- Earnings: Financial information
-- Billing: Medical billing details
-- Medical Records: Detailed medical record entries
+- Rate of Fraudulent Transactions
+- Fraud Losses as a Percentage of Revenue
+- Monetary Loss Due to Fraudulent Transactions
+- Average Risk Score
+- Average Transaction Amount
+- Average Fraudulent Transaction Amount
+- High Risk Transactions
+- Transaction Sample Size
 
 ## Docker Services
 

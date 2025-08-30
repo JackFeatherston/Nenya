@@ -343,7 +343,7 @@ export const AnalyticsCards = ({ transactions }) => {
         
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
           <div className="text-3xl font-bold text-green-400 mb-2">{formatAmount(averageFraudAmount)}</div>
-          <div className="text-sm" style={{ color: '#90949C' }}>Average Fraudulent Transaction</div>
+          <div className="text-sm" style={{ color: '#90949C' }}>Average Fraudulent Transaction Amount</div>
         </div>
         
         <div className="custom-card rounded-lg p-6 shadow-xl text-center">
