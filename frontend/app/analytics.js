@@ -173,7 +173,7 @@ export const FraudulentReasonsChart = ({ transactions }) => {
   const formatFraudReason = (reason) => {
     if (!reason || reason.trim() === '') return 'Unknown';
     
-    // Handle ml_detected format with comma-separated reasons
+    // Handle individual reason components (now that we break them down)
     if (reason.startsWith('ml_detected:')) {
       const subReasonsPart = reason.replace('ml_detected:', '').trim();
       if (subReasonsPart === '') return 'ML Detected';
@@ -185,7 +185,7 @@ export const FraudulentReasonsChart = ({ transactions }) => {
       ).join(' ');
     }
     
-    // Handle other formats - convert snake_case to Title Case
+    // Handle individual reason components and other formats - convert snake_case to Title Case
     return reason.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     ).join(' ');
@@ -202,9 +202,23 @@ export const FraudulentReasonsChart = ({ transactions }) => {
     const fraudTransactions = transactions.filter(t => t.isFraudulent && t.fraudReason);
     const reasonStats = {};
 
-    // Count fraud reasons
+    // Break down composite fraud reasons and count individual components
     fraudTransactions.forEach(t => {
-      reasonStats[t.fraudReason] = (reasonStats[t.fraudReason] || 0) + 1;
+      if (t.fraudReason.startsWith('ml_detected:')) {
+        const subReasonsPart = t.fraudReason.replace('ml_detected:', '').trim();
+        if (subReasonsPart === '') {
+          reasonStats['suspicious_pattern'] = (reasonStats['suspicious_pattern'] || 0) + 1;
+        } else {
+          // Split by comma and count each individual reason
+          const individualReasons = subReasonsPart.split(',').map(r => r.trim());
+          individualReasons.forEach(reason => {
+            reasonStats[reason] = (reasonStats[reason] || 0) + 1;
+          });
+        }
+      } else {
+        // Handle other reason formats (rule_based, etc.)
+        reasonStats[t.fraudReason] = (reasonStats[t.fraudReason] || 0) + 1;
+      }
     });
 
     const rawLabels = Object.keys(reasonStats);

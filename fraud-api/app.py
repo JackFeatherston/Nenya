@@ -398,9 +398,7 @@ def generate_fraud_reason(transaction: TransactionFeatures, fraud_probability: f
         return "low_risk_transaction"
     elif fraud_probability < 0.5:
         return "moderate_risk_detected"
-    elif fraud_probability < 0.7:
-        return "high_risk_pattern_detected"
-    else:
+    elif fraud_probability >= 0.5:
         reasons = []
         
         if transaction.amount > 1000:
