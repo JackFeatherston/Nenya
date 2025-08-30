@@ -204,9 +204,16 @@ def preprocess_data(df: pd.DataFrame, is_training: bool = False) -> pd.DataFrame
 @app.post("/train")
 async def train_model(request: TrainingRequest):
     """Train the fraud detection model"""
-    global model, is_trained, feature_columns
+    global model, is_trained, feature_columns, label_encoders, scaler
     
     try:
+        # Reset all global model state to prevent stale data issues
+        model = None
+        label_encoders = {}
+        scaler = None
+        feature_columns = []
+        is_trained = False
+        
         logger.info(f"Starting model training with {len(request.transactions)} transactions")
         
         # Convert to DataFrame
