@@ -103,6 +103,25 @@ const FraudGlobe = () => {
       setError(null);
       
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      
+      // First clear all existing data (same logic as clearData function)
+      const clearResponse = await fetch(`${apiUrl}/api/transactions`, {
+        method: 'DELETE',
+      });
+      
+      if (!clearResponse.ok) {
+        const errorData = await clearResponse.json();
+        throw new Error(errorData.error || 'Failed to clear existing data');
+      }
+      
+      // Clear all transactions from state
+      setTransactions([]);
+      setAllTransactions([]); 
+      setFilteredTransactions([]); 
+      setStats({ total: 0, fraudulent: 0, legitimate: 0, fraudRate: 0 });
+      setSelectedTransaction(null);
+      
+      // Then generate new data
       const response = await fetch(`${apiUrl}/api/generate-data?count=${count}`, {
         method: 'POST',
       });

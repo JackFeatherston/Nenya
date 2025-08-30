@@ -8,8 +8,6 @@ services:
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   fraud-api:
@@ -20,7 +18,6 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - fraud_models:/app/models
       - ./fraud-api:/app
     environment:
       - PYTHONUNBUFFERED=1
@@ -64,7 +61,3 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-
-volumes:
-  postgres_data:
-  fraud_models:
