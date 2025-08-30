@@ -10,7 +10,12 @@ shuffle button to generate a sample size of
 1000 simulated transactions and get calculated insights that real world companies utilize in their own analytics. 
 Click the delete button to clear the data. 
 
-<img width="2102" height="1223" alt="Image" src="https://github.com/user-attachments/assets/17b1d4af-a71a-43ca-a55b-3ab72069758c" />
+<img width="2559" height="1146" alt="Image" src="https://github.com/user-attachments/assets/32e8bfc7-5ed1-450f-8292-7044d71bf6f3" />
+
+<img width="2560" height="824" alt="Image" src="https://github.com/user-attachments/assets/fe2e4a1f-d89e-4576-ba80-4a0f5c313f8e" />
+
+<img width="2560" height="879" alt="Image" src="https://github.com/user-attachments/assets/05df8e27-9f2b-4a6c-8b2c-f9a998e70356" />
+
 
 ## Features 
 - **Machine Learning Fraud Detection** using Random Forest classifier with sophisticated feature engineering
@@ -22,10 +27,8 @@ Click the delete button to clear the data.
 - **Fallback Detection** with rule-based fraud detection when ML service unavailable
 - **Complete Dockerization** for easy deployment and development               
 
-## RAG Workflow Schema
-<img width="1252" height="330" alt="Image" src="https://github.com/user-attachments/assets/fbd26367-dda7-4b77-8817-8858d34e4aa0" />
-
-<img width="965" height="688" alt="Image" src="https://github.com/user-attachments/assets/c89e9105-fc59-447b-aeba-52b4fea75dfe" />
+## System Architecture
+<img width="1747" height="794" alt="Image" src="https://github.com/user-attachments/assets/0813ed58-5e14-4dc1-9bf4-dc5ca308332a" />
 
 ## Tech Stack
 Frontend
@@ -42,11 +45,9 @@ Backend
 AI/ML Stack
 - Scikit-learn Random Forest classifier for fraud detection
 - Fast API for managing endpoints with model classification 
-- all-minilm model for vector embeddings
 
 ## System Requirements
 - Docker and Docker Compose
-- Volume storage?
 
 ## Installation & Setup
 1. Clone the Repository
@@ -97,10 +98,6 @@ services
 - fraud-api:      # Fast API server (Port 8000)
 - backend:     # Spring server (Port 8080)  
 - frontend:    # Next.js app (Port 3000)
-  
-Data Persistence
-- postgres_data: Stores all transaction data
-- fraud_models: Stores trained fraud detection model
 
 
 
