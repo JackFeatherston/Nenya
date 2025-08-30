@@ -485,8 +485,8 @@ const FraudGlobe = () => {
               </div>
             </div>
   
-            {/* Fraud Reason */}
-            {selectedTransaction.fraudReason && (
+            {/* Fraud Reason - only show for fraudulent transactions */}
+            {selectedTransaction.isFraudulent && selectedTransaction.fraudReason && (
               <div className="bg-red-900 text-red-300 border border-red-500 rounded-lg p-3">
                 <h4 className="text-red-300 font-semibold mb-2">Fraud Reason:</h4>
                 <p className="text-red-200 text-sm">{formatFraudReason(selectedTransaction.fraudReason)}</p>
@@ -704,7 +704,7 @@ const FraudGlobe = () => {
                             ? 'bg-red-900 text-red-300 border border-red-500' 
                             : 'bg-green-900 text-green-300 border border-green-500'
                         }`}>
-                          {transaction.isFraudulent ? 'Fraud' : 'Legit'}
+                          {transaction.isFraudulent ? 'Fraud' : 'Legitimate'}
                         </span>
                       </td>
                       <td className="p-2 sm:p-3 font-mono text-xs" style={{ color: '#616771' }}>

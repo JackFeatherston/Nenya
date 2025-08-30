@@ -24,7 +24,7 @@ export const FraudVsLegitChart = ({ transactions }) => {
     chartInstance.current = new Chart.Chart(ctx, {
       type: 'pie',
       data: {
-        labels: ['Fraud', 'No Fraud'],
+        labels: ['Fraud', 'Legitimate'],
         datasets: [{
           data: [fraudulent, legitimate],
           backgroundColor: ['#ef4444', '#10b981'],
@@ -67,7 +67,7 @@ export const FraudVsLegitChart = ({ transactions }) => {
   return (
     <div className="custom-card rounded-lg p-6 shadow-xl">
       <h3 className="text-lg font-semibold mb-4 text-center" style={{ color: '#616771' }}>
-        Fraud vs No Fraud
+        Fraud vs Legitimate Transactions
       </h3>
       <div className="h-64">
         <canvas ref={chartRef}></canvas>
