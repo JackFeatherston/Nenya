@@ -470,7 +470,7 @@ const FraudGlobe = () => {
             {selectedTransaction.fraudReason && (
               <div className="bg-red-900 text-red-300 border border-red-500 rounded-lg p-3">
                 <h4 className="text-red-300 font-semibold mb-2">Fraud Reason:</h4>
-                <p className="text-red-200 text-sm">{selectedTransaction.fraudReason}</p>
+                <p className="text-red-200 text-sm">{formatFraudReason(selectedTransaction.fraudReason)}</p>
               </div>
             )}
   
@@ -526,6 +526,28 @@ const FraudGlobe = () => {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
+  };
+
+  // Function to format fraud reason labels for display
+  const formatFraudReason = (reason) => {
+    if (!reason || reason.trim() === '') return 'Unknown';
+    
+    // Handle ml_detected format with comma-separated reasons
+    if (reason.startsWith('ml_detected:')) {
+      const subReasonsPart = reason.replace('ml_detected:', '').trim();
+      if (subReasonsPart === '') return 'ML Detected';
+      
+      // Split by comma and take the first reason for the label
+      const firstReason = subReasonsPart.split(',')[0].trim();
+      return firstReason.split('_').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+    }
+    
+    // Handle other formats - convert snake_case to Title Case
+    return reason.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
   };
 
   // Transaction Table
