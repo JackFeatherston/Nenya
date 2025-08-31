@@ -18,13 +18,12 @@ Click the delete button to clear the data.
 
 
 ## Features 
-- **Machine Learning Fraud Detection** using Random Forest classifier with sophisticated feature engineering
-- **Real-time Risk Scoring** with 0-100 risk scores and fraud probability calculations
+- **Machine Learning Fraud Detection** using Scikit-learns's Random Forest classifier with feature engineering
+- **Real-time Risk Scoring** and fraud probability calculations determing from the trained model
 - **Geographic Visualization** using D3.js for interactive fraud pattern mapping
-- **Synthetic Data Generation** creating realistic transaction patterns across merchant categories
-- **Multi-service Architecture** with Java backend, Python ML API, and React frontend
-- **Comprehensive Analytics** including time-based, location-based, and behavioral fraud indicators
-- **Fallback Detection** with rule-based fraud detection when ML service unavailable
+- **Synthetic Data Generation** using Java Faker to create realistic transaction patterns 
+- **Multi-service Architecture** with a Java backend, Python ML API, and Next.js frontend
+- **Analytics** displaying information across pie charts, bar graphs, and info cards
 - **Complete Dockerization** for easy deployment and development               
 
 ## System Architecture
