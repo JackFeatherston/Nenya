@@ -107,22 +107,37 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     # Convert timestamp to datetime if it's a string
     if 'timestamp' in df.columns:
         df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed', errors='coerce')
-        df['hour_of_day'] = df['timestamp'].dt.hour
-        df['day_of_week'] = df['timestamp'].dt.dayofweek
+        # Handle NaN timestamps by using current hour/day as fallback
+        df['hour_of_day'] = df['timestamp'].dt.hour.fillna(12)  # Default to noon
+        df['day_of_week'] = df['timestamp'].dt.dayofweek.fillna(1)  # Default to Tuesday
+    
+    # Ensure amount is numeric and handle NaN
+    df['amount'] = pd.to_numeric(df['amount'], errors='coerce').fillna(0.0)
     
     # Amount-based features
-    df['amount_log'] = np.log1p(df['amount'])
+    df['amount_log'] = np.log1p(np.maximum(df['amount'], 0))  # Ensure non-negative
     df['amount_rounded'] = (df['amount'] % 1 == 0).astype(int)
     
-    # Create amount categories
+    # Create amount categories with proper NaN handling
     df['amount_category'] = pd.cut(df['amount'], 
                                   bins=[0, 10, 50, 200, 1000, float('inf')], 
-                                  labels=['very_low', 'low', 'medium', 'high', 'very_high'])
+                                  labels=['very_low', 'low', 'medium', 'high', 'very_high'],
+                                  include_lowest=True)
+    # Convert categorical to string and handle NaN
+    df['amount_category'] = df['amount_category'].astype(str).replace('nan', 'very_low')
     
     # Time-based features
     if 'hour_of_day' in df.columns:
+        # Ensure hour_of_day is integer and in valid range
+        df['hour_of_day'] = df['hour_of_day'].fillna(12).astype(int).clip(0, 23)
         df['is_night'] = ((df['hour_of_day'] >= 22) | (df['hour_of_day'] <= 6)).astype(int)
         df['is_business_hours'] = ((df['hour_of_day'] >= 9) & (df['hour_of_day'] <= 17)).astype(int)
+    
+    # Ensure string columns are properly handled
+    string_columns = ['location_country', 'payment_method', 'merchant_category']
+    for col in string_columns:
+        if col in df.columns:
+            df[col] = df[col].fillna('unknown').astype(str)
     
     # Location features (simplified)
     df['is_high_risk_country'] = df['location_country'].isin([
@@ -147,6 +162,18 @@ def preprocess_data(df: pd.DataFrame, is_training: bool = False) -> pd.DataFrame
     # Engineer features
     df_processed = engineer_features(df.copy())
     
+    # Ensure numerical columns have proper defaults
+    numerical_defaults = {
+        'latitude': 0.0,
+        'longitude': 0.0,
+        'hour_of_day': 12,
+        'day_of_week': 1
+    }
+    
+    for col, default_val in numerical_defaults.items():
+        if col in df_processed.columns:
+            df_processed[col] = pd.to_numeric(df_processed[col], errors='coerce').fillna(default_val)
+    
     # Categorical columns to encode
     categorical_columns = [
         'merchant_category', 'payment_method', 'device_type', 
@@ -166,40 +193,71 @@ def preprocess_data(df: pd.DataFrame, is_training: bool = False) -> pd.DataFrame
     ]
     
     if is_training:
-        # Fit label encoders
+        # Fit label encoders with NaN handling
         for col in categorical_columns:
             if col in df_processed.columns:
+                # Fill NaN with 'unknown' before encoding
+                df_processed[col] = df_processed[col].fillna('unknown').astype(str)
                 le = LabelEncoder()
-                df_processed[col + '_encoded'] = le.fit_transform(df_processed[col].astype(str))
+                df_processed[col + '_encoded'] = le.fit_transform(df_processed[col])
                 label_encoders[col] = le
+        
+        # Ensure all numerical columns exist and have no NaN
+        for col in numerical_columns:
+            if col in df_processed.columns:
+                df_processed[col] = pd.to_numeric(df_processed[col], errors='coerce').fillna(0.0)
+            else:
+                df_processed[col] = 0.0  # Create missing columns
         
         # Fit scaler
         scaler = StandardScaler()
-        if all(col in df_processed.columns for col in numerical_columns):
-            df_processed[numerical_columns] = scaler.fit_transform(df_processed[numerical_columns])
+        df_processed[numerical_columns] = scaler.fit_transform(df_processed[numerical_columns])
     
     else:
         # Transform using fitted encoders
         for col in categorical_columns:
             if col in df_processed.columns and col in label_encoders:
                 le = label_encoders[col]
-                # Handle unseen categories
-                df_processed[col + '_encoded'] = df_processed[col].astype(str).apply(
-                    lambda x: le.transform([x])[0] if x in le.classes_ else -1
+                # Fill NaN and handle unseen categories
+                df_processed[col] = df_processed[col].fillna('unknown').astype(str)
+                df_processed[col + '_encoded'] = df_processed[col].apply(
+                    lambda x: le.transform([x])[0] if x in le.classes_ else 0  # Default to first class
                 )
+            elif col in categorical_columns:
+                # Create encoded column with default values if encoder missing
+                df_processed[col + '_encoded'] = 0
+        
+        # Ensure all numerical columns exist
+        for col in numerical_columns:
+            if col in df_processed.columns:
+                df_processed[col] = pd.to_numeric(df_processed[col], errors='coerce').fillna(0.0)
+            else:
+                df_processed[col] = 0.0
         
         # Transform using fitted scaler
-        if scaler is not None and all(col in df_processed.columns for col in numerical_columns):
+        if scaler is not None:
             df_processed[numerical_columns] = scaler.transform(df_processed[numerical_columns])
     
+    # Ensure all binary columns exist
+    for col in binary_columns:
+        if col not in df_processed.columns:
+            df_processed[col] = 0
+    
     # Select final features
-    encoded_categoricals = [col + '_encoded' for col in categorical_columns 
-                          if col in df_processed.columns]
-    
+    encoded_categoricals = [col + '_encoded' for col in categorical_columns]
     feature_columns = numerical_columns + encoded_categoricals + binary_columns
-    feature_columns = [col for col in feature_columns if col in df_processed.columns]
     
-    return df_processed[feature_columns]
+    # Ensure all feature columns exist in the dataframe
+    for col in feature_columns:
+        if col not in df_processed.columns:
+            df_processed[col] = 0.0
+    
+    result = df_processed[feature_columns]
+    
+    # Final NaN check and replacement
+    result = result.fillna(0.0)
+    
+    return result
 
 @app.post("/train")
 async def train_model(request: TrainingRequest):
