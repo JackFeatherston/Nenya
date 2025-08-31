@@ -106,7 +106,7 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     
     # Convert timestamp to datetime if it's a string
     if 'timestamp' in df.columns:
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed', errors='coerce')
         df['hour_of_day'] = df['timestamp'].dt.hour
         df['day_of_week'] = df['timestamp'].dt.dayofweek
     
@@ -292,22 +292,45 @@ async def train_model(request: TrainingRequest):
 
 @app.post("/predict", response_model=FraudPrediction)
 async def predict_fraud(transaction: TransactionFeatures):
-    """Predict fraud for a single transaction"""
+    """Predict fraud for a single transaction - requires trained model"""
     global model, is_trained
     
-    if not is_trained or model is None:
-        # Fallback prediction logic
-        return get_fallback_prediction(transaction)
+    if not is_trained:
+        raise HTTPException(
+            status_code=503, 
+            detail="ML model is not trained. Please train the model first by calling /train endpoint."
+        )
+    
+    if model is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="ML model is not available. Please train the model first."
+        )
     
     try:
+        logger.info(f"Making ML prediction for transaction amount: ${transaction.amount}")
+        
         # Convert to DataFrame
         df = pd.DataFrame([transaction.dict()])
         
-        # Preprocess
+        # Preprocess - this can fail if model wasn't trained with proper features
         X = preprocess_data(df, is_training=False)
         
-        # Make prediction
-        fraud_probability = model.predict_proba(X)[0, 1]
+        if X.empty or len(X.columns) == 0:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to preprocess transaction data for prediction"
+            )
+        
+        # Make prediction - this is the core ML prediction
+        prediction_proba = model.predict_proba(X)
+        if prediction_proba is None or len(prediction_proba) == 0:
+            raise HTTPException(
+                status_code=500,
+                detail="Model failed to generate prediction probabilities"
+            )
+        
+        fraud_probability = float(prediction_proba[0, 1])
         
         # Normalize probability first, then calculate risk score
         fraud_probability = validate_and_normalize_probability(fraud_probability)
@@ -316,7 +339,7 @@ async def predict_fraud(transaction: TransactionFeatures):
         # Calculate risk score as direct percentage (0-100)
         risk_score = validate_and_normalize_risk_score(fraud_probability * 100)
         
-        # Generate fraud reason based on feature importance
+        # Generate fraud reason based on ML analysis
         fraud_reason = generate_fraud_reason(transaction, fraud_probability)
         
         # Get feature importance for this prediction
@@ -326,6 +349,8 @@ async def predict_fraud(transaction: TransactionFeatures):
                 if i < len(model.feature_importances_):
                     feature_importance[feature] = float(model.feature_importances_[i])
         
+        logger.info(f"ML prediction complete: fraud_probability={fraud_probability:.3f}, risk_score={risk_score:.1f}")
+        
         return FraudPrediction(
             is_fraud=is_fraud,
             fraud_probability=fraud_probability,
@@ -334,69 +359,16 @@ async def predict_fraud(transaction: TransactionFeatures):
             feature_importance=feature_importance
         )
         
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        logger.error(f"Prediction failed: {str(e)}")
-        # Return fallback prediction on error
-        return get_fallback_prediction(transaction)
+        logger.error(f"ML prediction failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"ML prediction failed: {str(e)}. Ensure model is properly trained and transaction data is valid."
+        )
 
-def get_fallback_prediction(transaction: TransactionFeatures) -> FraudPrediction:
-    """Fallback rule-based prediction when ML model is not available"""
-    
-    risk_factors = 0
-    reasons = []
-    
-    # High amount
-    if transaction.amount > 2000:
-        risk_factors += 3
-        reasons.append("high_amount")
-    elif transaction.amount > 1000:
-        risk_factors += 2
-        reasons.append("elevated_amount")
-    
-    # Very small amounts (card testing)
-    if transaction.amount < 5:
-        risk_factors += 2
-        reasons.append("micro_transaction")
-    
-    # Unusual hours
-    if transaction.hour_of_day < 6 or transaction.hour_of_day > 23:
-        risk_factors += 2
-        reasons.append("unusual_hours")
-    
-    # High-risk categories
-    if transaction.merchant_category in ['Online Shopping', 'Electronics', 'Gas Station']:
-        risk_factors += 1
-        reasons.append("high_risk_category")
-    
-    # High-risk payment methods
-    if transaction.payment_method in ['PayPal', 'Apple Pay', 'Google Pay']:
-        risk_factors += 1
-        reasons.append("high_risk_payment")
-    
-    # High-risk countries
-    if transaction.location_country in ['Nigeria', 'Russia', 'China', 'Romania']:
-        risk_factors += 2
-        reasons.append("high_risk_location")
-    
-    # Calculate probability (max 10 risk factors)
-    max_risk_factors = 10
-    fraud_probability = min(0.95, (risk_factors / max_risk_factors) * 0.8 + 0.05)
-    fraud_probability = validate_and_normalize_probability(fraud_probability)
-    
-    is_fraud = fraud_probability > 0.5
-    
-    # Risk score is probability * 100, properly capped
-    risk_score = validate_and_normalize_risk_score(fraud_probability * 100)
-    
-    fraud_reason = "rule_based: " + ", ".join(reasons) if reasons else "low_risk_profile"
-    
-    return FraudPrediction(
-        is_fraud=is_fraud,
-        fraud_probability=fraud_probability,
-        risk_score=risk_score,
-        fraud_reason=fraud_reason,
-        feature_importance={}
-    )
 
 def generate_fraud_reason(transaction: TransactionFeatures, fraud_probability: float) -> str:
     """Generate human-readable fraud reason"""

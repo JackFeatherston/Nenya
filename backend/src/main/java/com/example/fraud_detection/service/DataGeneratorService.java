@@ -144,10 +144,11 @@ public class DataGeneratorService {
     }
     
     /**
-     * Generates synthetic transaction data with realistic patterns and fraud detection.
+     * Generates synthetic transaction data with realistic patterns and ML-based fraud detection.
+     * Requires ML API to be available for training and predictions. No fallback logic is used.
      * @param totalTransactions Number of transactions to generate (1-100,000)
      * @throws IllegalArgumentException if count is invalid
-     * @throws RuntimeException if data generation fails
+     * @throws RuntimeException if data generation fails or ML API is unavailable
      */
     @Transactional
     public void generateSyntheticData(int totalTransactions) {
@@ -160,17 +161,27 @@ public class DataGeneratorService {
         }
         
         try {
+            // ML API must be available before starting
+            if (!fraudDetectionService.isApiAvailable()) {
+                throw new RuntimeException("ML API is not available. Data generation requires ML fraud detection and no fallback is available. " +
+                    "Please start the Python ML service at http://localhost:8000 before generating data.");
+            }
+            
+            System.out.println("Starting synthetic data generation with " + totalTransactions + " transactions...");
+            
             // Clear all existing data first and flush changes
             transactionRepository.deleteAll();
             transactionRepository.flush();
             
             List<Transaction> allTransactions = new ArrayList<>();
             
-            // Generate transactions with realistic patterns (no hardcoded fraud logic)
+            // Generate transactions with realistic patterns (no fraud logic - ML will determine)
             for (int i = 0; i < totalTransactions; i++) {
                 Transaction transaction = generateRealisticTransaction();
                 allTransactions.add(transaction);
             }
+            
+            System.out.println("Generated " + allTransactions.size() + " raw transactions. Saving to database...");
             
             // Save all transactions in batches
             int batchSize = 500;
@@ -181,17 +192,35 @@ public class DataGeneratorService {
                 transactionRepository.flush();
             }
             
-            // Train ML model with generated data if available
-            try {
-                trainMLModel();
-            } catch (Exception e) {
-                // Continue with fallback detection if ML training fails
+            System.out.println("Raw transactions saved. Starting ML model training...");
+            
+            // Train ML model with generated data - this MUST succeed
+            trainMLModel();
+            System.out.println("ML model training completed successfully.");
+            
+            // Verify model is trained before proceeding
+            Map<String, Object> modelStatus = fraudDetectionService.getModelStatus();
+            Boolean isTrained = (Boolean) modelStatus.get("is_trained");
+            if (isTrained == null || !isTrained) {
+                throw new RuntimeException("ML model training appeared to succeed but model is not in trained state. Cannot proceed with fraud detection.");
             }
             
-            // Update transactions with ML predictions
+            System.out.println("Applying ML fraud detection to all transactions...");
+            
+            // Update transactions with ML predictions - this MUST succeed
             updateTransactionsWithMLPredictions();
             
+            System.out.println("Successfully completed synthetic data generation with ML fraud detection.");
+            
         } catch (Exception e) {
+            // Clean up on failure
+            try {
+                transactionRepository.deleteAll();
+                transactionRepository.flush();
+                System.err.println("Cleaned up partial data due to generation failure.");
+            } catch (Exception cleanupEx) {
+                System.err.println("Failed to clean up partial data: " + cleanupEx.getMessage());
+            }
             throw new RuntimeException("Failed to generate synthetic data: " + e.getMessage(), e);
         }
     }
@@ -338,19 +367,50 @@ public class DataGeneratorService {
     }
     
     /**
-     * Trains the ML model using generated transaction data with rule-based initial labels.
+     * Trains the ML model using generated transaction data with synthetic fraud labels.
+     * Creates realistic fraud patterns for model training without rule-based logic.
      * @throws RuntimeException if model training fails
      */
     private void trainMLModel() {
         try {
             List<Transaction> allTransactions = transactionRepository.findAll();
             
-            // Create initial training data with rule-based labels for bootstrapping
+            if (allTransactions.isEmpty()) {
+                throw new RuntimeException("No transaction data available for ML model training");
+            }
+            
+            // Create training data with synthetic fraud labels for realistic ML training
             List<TrainingTransaction> trainingData = new ArrayList<>();
             
-            for (Transaction transaction : allTransactions) {
-                // Use rule-based logic to create initial labels
-                boolean isInitialFraud = determineInitialFraudStatus(transaction);
+            // Generate realistic fraud patterns for training (approximately 10% fraud rate)
+            int fraudCount = 0;
+            int targetFraudCount = (int) (allTransactions.size() * 0.10); // 10% fraud rate
+            
+            // Sort transactions to ensure consistent training patterns
+            Collections.sort(allTransactions, (a, b) -> a.getTransactionId().compareTo(b.getTransactionId()));
+            
+            for (int i = 0; i < allTransactions.size(); i++) {
+                Transaction transaction = allTransactions.get(i);
+                
+                // Create synthetic fraud labels with realistic patterns
+                boolean isTrainingFraud = false;
+                if (fraudCount < targetFraudCount) {
+                    // Distribute fraud labels across different patterns for realistic training
+                    double amount = transaction.getAmount().doubleValue();
+                    int hour = transaction.getTimestamp().getHour();
+                    String category = transaction.getMerchantCategory();
+                    
+                    // Create varied fraud patterns for better ML training
+                    boolean highAmountPattern = amount > 1000 && (i % 7 == 0);
+                    boolean nightTimePattern = (hour < 6 || hour > 22) && (i % 11 == 0);
+                    boolean riskyCategoryPattern = Arrays.asList("Online Shopping", "Electronics", "Gas Station").contains(category) && (i % 13 == 0);
+                    boolean randomPattern = (i % 17 == 0);
+                    
+                    if (highAmountPattern || nightTimePattern || riskyCategoryPattern || randomPattern) {
+                        isTrainingFraud = true;
+                        fraudCount++;
+                    }
+                }
                 
                 TrainingTransaction trainingTx = new TrainingTransaction();
                 trainingTx.transactionId = transaction.getTransactionId();
@@ -359,7 +419,7 @@ public class DataGeneratorService {
                 trainingTx.merchantCategory = transaction.getMerchantCategory();
                 trainingTx.amount = transaction.getAmount().doubleValue();
                 trainingTx.currency = transaction.getCurrency();
-                trainingTx.timestamp = transaction.getTimestamp().toString();
+                trainingTx.timestamp = transaction.getTimestamp().toString() + ".000000";
                 trainingTx.paymentMethod = transaction.getPaymentMethod();
                 trainingTx.cardLastFour = transaction.getCardLastFour();
                 trainingTx.locationCity = transaction.getLocationCity();
@@ -368,12 +428,18 @@ public class DataGeneratorService {
                 trainingTx.longitude = transaction.getLongitude().doubleValue();
                 trainingTx.ipAddress = transaction.getIpAddress();
                 trainingTx.deviceType = transaction.getDeviceType();
-                trainingTx.isFraudulent = isInitialFraud;
+                trainingTx.isFraudulent = isTrainingFraud;
                 
                 trainingData.add(trainingTx);
             }
             
-            // Send training request to Python API
+            // Verify we have a reasonable fraud rate for training
+            double actualFraudRate = (double) fraudCount / allTransactions.size();
+            if (actualFraudRate < 0.05 || actualFraudRate > 0.15) {
+                throw new RuntimeException(String.format("Generated training data has unrealistic fraud rate: %.2f%%. Expected ~10%%", actualFraudRate * 100));
+            }
+            
+            // Send training request to Python API - this must succeed
             fraudDetectionService.trainModel(trainingData);
             
         } catch (Exception e) {
@@ -381,59 +447,40 @@ public class DataGeneratorService {
         }
     }
     
-    /**
-     * Determines initial fraud status using rule-based logic for ML model bootstrapping.
-     * @param transaction Transaction to analyze
-     * @return true if transaction should be labeled as fraudulent for training
-     */
-    private boolean determineInitialFraudStatus(Transaction transaction) {
-        // Rule-based logic to create initial training labels
-        // This creates a more sophisticated fraud pattern than the original hardcoded approach
-        
-        double amount = transaction.getAmount().doubleValue();
-        int hour = transaction.getTimestamp().getHour();
-        String category = transaction.getMerchantCategory();
-        String paymentMethod = transaction.getPaymentMethod();
-        
-        int riskFactors = 0;
-        
-        // High amount transactions (but not always fraud)
-        if (amount > 2000) riskFactors += 2;
-        else if (amount > 1000) riskFactors += 1;
-        
-        // Very small amounts might be card testing
-        if (amount < 5.0) riskFactors += 1;
-        
-        // Unusual hours
-        if (hour < 6 || hour > 23) riskFactors += 1;
-        
-        // High-risk categories
-        if (Arrays.asList("Online Shopping", "Electronics", "Gas Station").contains(category)) {
-            riskFactors += 1;
-        }
-        
-        // High-risk payment methods
-        if (Arrays.asList("PayPal", "Apple Pay", "Google Pay").contains(paymentMethod)) {
-            riskFactors += 1;
-        }
-        
-        // Create realistic fraud rate (around 3-7%)
-        double fraudProbability = Math.min(0.7, riskFactors * 0.15 + 0.02);
-        
-        return random.nextDouble() < fraudProbability;
-    }
     
+    /**
+     * Updates all transactions with ML-based fraud predictions.
+     * This method requires the ML API to be available and the model to be trained.
+     * No fallback logic is used - failures result in exceptions.
+     * @throws RuntimeException if ML API is unavailable or predictions fail
+     */
     private void updateTransactionsWithMLPredictions() {
         try {
             List<Transaction> allTransactions = transactionRepository.findAll();
+            
+            if (allTransactions.isEmpty()) {
+                return; // No transactions to update
+            }
+            
+            // Verify ML API is available before starting
+            if (!fraudDetectionService.isApiAvailable()) {
+                throw new RuntimeException("ML API is not available. Cannot update transactions with fraud predictions. Please ensure the Python ML service is running.");
+            }
+            
             List<Transaction> updatedTransactions = new ArrayList<>();
+            int failedPredictions = 0;
             
             for (Transaction transaction : allTransactions) {
                 try {
-                    // Get ML prediction
+                    // Get ML prediction - this must succeed
                     FraudPrediction prediction = fraudDetectionService.predictFraud(transaction);
                     
-                    // Validate and normalize risk score before saving
+                    // Validate ML prediction results
+                    if (prediction == null) {
+                        throw new RuntimeException("ML API returned null prediction for transaction: " + transaction.getTransactionId());
+                    }
+                    
+                    // Validate and normalize values
                     double validatedRiskScore = validateRiskScore(prediction.riskScore);
                     double validatedProbability = validateProbability(prediction.fraudProbability);
                     
@@ -443,33 +490,38 @@ public class DataGeneratorService {
                                         .setScale(2, RoundingMode.HALF_UP));
                     transaction.setFraudProbability(BigDecimal.valueOf(validatedProbability)
                                         .setScale(4, RoundingMode.HALF_UP));
-                    transaction.setFraudReason(prediction.fraudReason);
+                    transaction.setFraudReason(prediction.fraudReason != null ? prediction.fraudReason : "ml_prediction");
                     
                     updatedTransactions.add(transaction);
                     
                 } catch (Exception e) {
-                    // Use fallback rule-based detection if ML prediction fails
-                    FraudPrediction fallbackPrediction = getFallbackPrediction(transaction);
+                    failedPredictions++;
+                    // Log the failure but continue with other transactions
+                    System.err.println("Failed to get ML prediction for transaction " + transaction.getTransactionId() + ": " + e.getMessage());
                     
-                    double validatedRiskScore = validateRiskScore(fallbackPrediction.riskScore);
+                    // If too many predictions fail, abort the entire process
+                    if (failedPredictions > allTransactions.size() * 0.1) { // More than 10% failures
+                        throw new RuntimeException("Too many ML predictions failed (" + failedPredictions + "/" + allTransactions.size() + "). ML service may be unstable. Aborting fraud detection.");
+                    }
                     
-                    transaction.setIsFraudulent(fallbackPrediction.isFraud);
-                    transaction.setRiskScore(BigDecimal.valueOf(validatedRiskScore)
-                                        .setScale(2, RoundingMode.HALF_UP));
-                    transaction.setFraudProbability(BigDecimal.valueOf(
-                            validateProbability(fallbackPrediction.fraudProbability))
-                                        .setScale(4, RoundingMode.HALF_UP));
-                    transaction.setFraudReason(fallbackPrediction.fraudReason);
-                    
-                    updatedTransactions.add(transaction);
+                    // For individual failures, skip this transaction rather than using fallback
+                    continue;
                 }
             }
             
-            // Save updated transactions
-            transactionRepository.saveAll(updatedTransactions);
+            // Verify we got predictions for most transactions
+            if (updatedTransactions.size() < allTransactions.size() * 0.9) {
+                throw new RuntimeException("Only got ML predictions for " + updatedTransactions.size() + "/" + allTransactions.size() + " transactions. This is insufficient for reliable fraud detection.");
+            }
+            
+            // Save successfully updated transactions
+            if (!updatedTransactions.isEmpty()) {
+                transactionRepository.saveAll(updatedTransactions);
+                System.out.println("Successfully updated " + updatedTransactions.size() + " transactions with ML fraud predictions.");
+            }
             
         } catch (Exception e) {
-            // Failed to update transactions with ML predictions
+            throw new RuntimeException("Failed to update transactions with ML predictions: " + e.getMessage(), e);
         }
     }
 
@@ -493,73 +545,6 @@ public class DataGeneratorService {
         return Math.max(0.0, Math.min(1.0, probability));
     }
     
-    /**
-     * Provides fallback fraud detection using rule-based logic when ML is unavailable.
-     * @param transaction Transaction to analyze
-     * @return Fraud prediction based on rule-based analysis
-     */
-    private FraudPrediction getFallbackPrediction(Transaction transaction) {
-        double amount = transaction.getAmount().doubleValue();
-        int hour = transaction.getTimestamp().getHour();
-        String category = transaction.getMerchantCategory();
-        String paymentMethod = transaction.getPaymentMethod();
-        String country = transaction.getLocationCountry();
-        
-        int riskFactors = 0;
-        java.util.List<String> reasons = new ArrayList<>();
-        
-        // High amount transactions
-        if (amount > 2000) {
-            riskFactors += 3;
-            reasons.add("high_amount");
-        } else if (amount > 1000) {
-            riskFactors += 2;
-            reasons.add("elevated_amount");
-        }
-        
-        // Very small amounts might be card testing
-        if (amount < 5.0) {
-            riskFactors += 2;
-            reasons.add("micro_transaction");
-        }
-        
-        // Unusual hours
-        if (hour < 6 || hour > 23) {
-            riskFactors += 2;
-            reasons.add("unusual_hours");
-        }
-        
-        // High-risk categories
-        if (Arrays.asList("Online Shopping", "Electronics", "Gas Station").contains(category)) {
-            riskFactors += 1;
-            reasons.add("high_risk_category");
-        }
-        
-        // High-risk payment methods
-        if (Arrays.asList("PayPal", "Apple Pay", "Google Pay").contains(paymentMethod)) {
-            riskFactors += 1;
-            reasons.add("high_risk_payment");
-        }
-        
-        // High-risk countries
-        if (Arrays.asList("Nigeria", "Russia", "China", "Romania", "Ukraine").contains(country)) {
-            riskFactors += 2;
-            reasons.add("high_risk_location");
-        }
-        
-        // Calculate probability (max 10 risk factors)
-        double maxRiskFactors = 10.0;
-        double fraudProbability = Math.min(0.95, (riskFactors / maxRiskFactors) * 0.8 + 0.05);
-        fraudProbability = validateProbability(fraudProbability);
-        
-        boolean isFraud = fraudProbability > 0.5;
-        double riskScore = validateRiskScore(fraudProbability * 100);
-        
-        String fraudReason = reasons.isEmpty() ? "low_risk_profile" : 
-                            "rule_based: " + String.join(", ", reasons);
-        
-        return new FraudPrediction(isFraud, fraudProbability, riskScore, fraudReason);
-    }
     
     /**
      * Clears all transaction data from the database.

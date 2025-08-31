@@ -90,7 +90,7 @@ public class FraudDetectionService {
             features.longitude = transaction.getLongitude().doubleValue();
             features.userId = transaction.getUserId();
             features.merchantName = transaction.getMerchantName();
-            features.timestamp = transaction.getTimestamp().toString();
+            features.timestamp = transaction.getTimestamp().toString() + ".000000";
             
             HttpEntity<TransactionFeatures> request = new HttpEntity<>(features, headers);
             
@@ -106,7 +106,7 @@ public class FraudDetectionService {
             
         } catch (ResourceAccessException e) {
             throw new RuntimeException("Cannot connect to fraud detection API at " + fraudApiUrl + 
-                                     ". Using fallback fraud detection.", e);
+                                     ". ML fraud detection is required and no fallback is available. Please ensure the Python ML service is running.", e);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get fraud prediction: " + e.getMessage(), e);
         }
@@ -149,6 +149,63 @@ public class FraudDetectionService {
             Map<String, Object> status = new HashMap<>();
             status.put("error", "Failed to get model status: " + e.getMessage());
             return status;
+        }
+    }
+    
+    /**
+     * Validates that the ML model is ready for fraud detection.
+     * Performs comprehensive checks on model availability and training status.
+     * @throws RuntimeException if model is not ready for predictions
+     */
+    public void validateModelReadiness() {
+        // Check API availability first
+        if (!isApiAvailable()) {
+            throw new RuntimeException("ML API is not available at " + fraudApiUrl + 
+                ". Please ensure the Python ML service is running before attempting fraud detection.");
+        }
+        
+        // Get detailed model status
+        Map<String, Object> modelStatus = getModelStatus();
+        
+        // Check for connection errors
+        if (modelStatus.containsKey("error")) {
+            throw new RuntimeException("ML API error: " + modelStatus.get("error"));
+        }
+        
+        // Validate model is trained
+        Boolean isTrained = (Boolean) modelStatus.get("is_trained");
+        if (isTrained == null || !isTrained) {
+            throw new RuntimeException("ML model is not trained. Please train the model first before generating data or making predictions.");
+        }
+        
+        // Validate model has features
+        Object featureCount = modelStatus.get("feature_count");
+        if (featureCount == null || ((Number) featureCount).intValue() < 5) {
+            throw new RuntimeException("ML model has insufficient features (" + featureCount + "). Model may not be properly trained.");
+        }
+        
+        // Validate model type
+        Object modelType = modelStatus.get("model_type");
+        if (modelType == null || !modelType.toString().contains("RandomForest")) {
+            throw new RuntimeException("Expected RandomForest model but found: " + modelType + ". Model may not be properly initialized.");
+        }
+        
+        System.out.println("ML model validation passed: " + 
+            "trained=" + isTrained + 
+            ", features=" + featureCount + 
+            ", type=" + modelType);
+    }
+    
+    /**
+     * Checks if the ML model is ready for making predictions.
+     * @return true if model is trained and ready, false otherwise
+     */
+    public boolean isModelReady() {
+        try {
+            validateModelReadiness();
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
     

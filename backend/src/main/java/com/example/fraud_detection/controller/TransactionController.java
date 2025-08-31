@@ -92,30 +92,44 @@ public class TransactionController {
     }
     
     /**
-     * Generates synthetic transaction data with fraud detection.
+     * Generates synthetic transaction data with ML-based fraud detection.
+     * Requires ML service to be available and model to be ready.
      * @param count Number of transactions to generate (default: 1000)
      * @return Response with generation status and ML detection info
      */
     @PostMapping("/generate-data")
     public ResponseEntity<Map<String, String>> generateData(@RequestParam(defaultValue = "1000") int count) {
         try {
+            // Check if ML API is available (model training status will be checked during generation)
+            if (!fraudDetectionService.isApiAvailable()) {
+                throw new RuntimeException("ML API is not available. Please start the Python ML service before generating data.");
+            }
+            
             dataGeneratorService.generateSyntheticData(count);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Successfully generated " + count + " synthetic transactions with ML-based fraud detection");
-            
-            // Add ML status to response
-            boolean mlAvailable = fraudDetectionService.isApiAvailable();
-            response.put("ml_detection", mlAvailable ? "enabled" : "fallback_rules_used");
+            response.put("ml_detection", "enabled");
+            response.put("ml_model_status", "ready");
             
             return ResponseEntity.ok(response);
+            
         } catch (Exception e) {
             Map<String, String> response = new HashMap<>();
             response.put("error", "Failed to generate data: " + e.getMessage());
             
-            // Check if error is related to ML API
-            if (e.getMessage().contains("fraud detection API")) {
-                response.put("ml_status", "unavailable");
-                response.put("suggestion", "Start the Python ML service at http://localhost:8000");
+            // Provide specific guidance based on error type
+            if (e.getMessage().contains("ML API is not available")) {
+                response.put("ml_status", "api_unavailable");
+                response.put("suggestion", "Start the Python ML service: cd fraud-api && uvicorn app:app --host 0.0.0.0 --port 8000");
+            } else if (e.getMessage().contains("model is not trained")) {
+                response.put("ml_status", "model_not_trained");
+                response.put("suggestion", "Generate data first to train the ML model, or ensure the ML service is properly initialized");
+            } else if (e.getMessage().contains("insufficient features")) {
+                response.put("ml_status", "model_invalid");
+                response.put("suggestion", "Restart the ML service to reset the model state");
+            } else {
+                response.put("ml_status", "unknown_error");
+                response.put("suggestion", "Check ML service logs for details");
             }
             
             return ResponseEntity.status(500).body(response);

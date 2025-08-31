@@ -121,19 +121,33 @@ const FraudGlobe = () => {
       setStats({ total: 0, fraudulent: 0, legitimate: 0, fraudRate: 0 });
       setSelectedTransaction(null);
       
-      // Then generate new data
+      // Then generate new data - this now requires ML service
       const response = await fetch(`${apiUrl}/api/generate-data?count=${count}`, {
         method: 'POST',
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate data');
+        
+        // Handle specific ML service errors with helpful messages
+        if (errorData.ml_status === 'api_unavailable') {
+          throw new Error(`ML Service Required: The fraud detection system requires the Python ML service to be running. Please start it with:\n\ncd fraud-api\nuvicorn app:app --host 0.0.0.0 --port 8000\n\nThen refresh this page and try again.`);
+        } else if (errorData.ml_status === 'model_not_trained') {
+          throw new Error(`ML Model Not Ready: ${errorData.error}\n\nSuggestion: ${errorData.suggestion}`);
+        } else if (errorData.ml_status === 'model_invalid') {
+          throw new Error(`ML Model Problem: ${errorData.error}\n\nSuggestion: ${errorData.suggestion}`);
+        } else {
+          throw new Error(errorData.error || 'Failed to generate data');
+        }
       }
+      
+      const responseData = await response.json();
+      console.log('Data generation successful:', responseData);
       
       await fetchData(); 
     } catch (err) {
       setError(err.message);
+      console.error('Data generation error:', err);
     } finally {
       setIsGenerating(false);
     }
@@ -878,16 +892,29 @@ const FraudGlobe = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen" style={{ backgroundColor: '#E9EBEE' }}>
-        <div className="bg-red-900 border border-red-500 rounded-lg p-6 max-w-md">
-          <h2 className="text-red-300 text-xl font-bold mb-2">Error Loading Data</h2>
-          <p className="text-red-200">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors"
-          >
-            Retry
-          </button>
+      <div className="flex items-center justify-center min-h-screen p-4" style={{ backgroundColor: '#E9EBEE' }}>
+        <div className="bg-red-900 border border-red-500 rounded-lg p-6 max-w-2xl w-full">
+          <h2 className="text-red-300 text-xl font-bold mb-4">System Error</h2>
+          <div className="bg-red-800 border border-red-600 rounded p-4 mb-4">
+            <pre className="text-red-200 text-sm whitespace-pre-wrap font-mono">{error}</pre>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => {
+                setError(null);
+                fetchData();
+              }} 
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors"
+            >
+              Retry
+            </button>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
         </div>
       </div>
     );
